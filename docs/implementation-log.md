@@ -113,9 +113,26 @@ The registry establishes profile identity and hierarchy. It does not yet decide 
 
 ---
 
-## Verification record — 2026-11-06
+## 2026-11-06 — M1.3 Template index loader and validator
 
-The user ran the following commands successfully in the local `v2-pitcrew` working tree:
+Status: Done
+
+Implemented the versioned template index contract and runtime validation.
+
+- Added strict Zod schemas for the index and its entries.
+- Validated stable identifiers, semantic versions, portable relative destinations, profile IDs, ownership policies, and platform lists.
+- Added catalog consistency checks for template IDs and versions, asset IDs, adapter scopes, capability references, and complete asset-to-index coverage.
+- Rejected duplicate destinations, case-insensitive path collisions, and parent/child destination conflicts.
+- Added a loader with file-type, symlink, and size checks.
+- Added source validation for safe relative paths, symlink rejection within the template tree, and expected file/directory types.
+- Deep-froze validated index data.
+- Kept validation pure where possible and separated filesystem checks from schema/catalog validation.
+
+The index still models one destination per asset. Adapter-specific destination variants remain deferred and are recorded in `docs/decisions/ADR-0001-adapter-specific-asset-destinations.md`.
+
+### Verification record — 2026-11-06
+
+The user reported successful local execution after M1.3:
 
 ```bash
 pnpm typecheck
@@ -123,13 +140,30 @@ pnpm test
 pnpm build
 ```
 
-Results:
+Results reported:
 
 - TypeScript typecheck: passed.
-- Vitest: 5 test files passed, 25 tests passed.
-- Production build: passed (`tsup`, Node.js 22 target).
+- Vitest: 8 test files passed, 51 tests passed.
+- Production build: passed.
 
-The 25 tests comprise the CLI test, six template type-contract tests, four template content tests, eight profile registry tests, and six adapter registry tests.
+These are user-reported local results; this log does not claim an independent rerun in this patch-preparation environment.
+
+---
+
+## M1.4 direction — Universal workflow refinement
+
+The `landing-main` project is a reference fixture for evaluating workflow patterns, not a product template or source directory to copy into Pitcrew.
+
+The useful stack-independent practices identified for the universal workflow are:
+
+- Read-only investigation before planning unfamiliar or consequential work.
+- Evidence-backed findings that distinguish facts, assumptions, and unresolved questions.
+- Independent review for complex, risky, or architecturally significant changes when supported.
+- Verification of the changed behavior in its real environment, especially for user-facing interfaces.
+- Explicit reporting when a check or review could not be performed.
+- Recording recurring lessons in canonical project documentation without creating duplicate sources of truth.
+
+No Next.js/Payload template, Claude-specific assets, hooks, permissions, MCP configuration, or application source are added to the Pitcrew catalog by this work.
 
 ---
 
@@ -142,10 +176,11 @@ The 25 tests comprise the CLI test, six template type-contract tests, four templ
 | M0.3      | Adapter interface                   | Not started                                                  |
 | M0.4      | CI foundation                       | Implemented                                                  |
 | M1.1      | Universal workflow documents        | Done                                                         |
-| M1.2      | Workflow profiles                   | Done — registry contract; index integration deferred to M1.3 |
-| M1.3      | Template index loader and validator | Not started                                                  |
-| M1.4      | Template renderer                   | Not started                                                  |
-| M1.5      | Template tests                      | Not started                                                  |
+| M1.2      | Workflow profiles                   | Done — registry contract; index integration completed in M1.3 |
+| M1.3      | Template index loader and validator | Done                                                         |
+| M1.4      | Universal workflow refinement       | In progress                                                   |
+| M1.5      | Template renderer                   | Not started                                                   |
+| M1.6      | Template tests                      | Not started                                                   |
 
 The adapter registry, template asset contracts, and profile registry are foundational contracts. They must not be confused with completion of the original M0.2 or M0.3 milestones.
 
@@ -155,13 +190,13 @@ The adapter registry, template asset contracts, and profile registry are foundat
 
 The following are intentionally not implemented yet:
 
-- Core runtime schemas beyond the currently defined TypeScript contracts.
 - Functional adapter generators.
-- Template catalog/index registration and runtime validation.
-- `minimumProfile`-based asset selection.
+- Full template catalog registration and profile-based asset selection.
 - Template rendering and placeholder substitution.
 - Installation planning and conflict handling.
 - Filesystem mutation and ownership tracking.
 - Update and uninstall lifecycle.
+- Adapter-specific destination variants in the template index.
+- Hooks, permission changes, and MCP configuration installation.
 
 The `landing-main` project remains a local reference fixture. It is not part of the published template catalog or public package.

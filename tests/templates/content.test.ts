@@ -120,15 +120,18 @@ describe("universal workflow template content", () => {
       ],
       "workflow/task-lifecycle.md": [
         "Understand the request",
+        "Investigate before planning",
         "Classify risk",
         "Confirm approval",
         "Verify",
+        "Review",
         "Complete and report",
       ],
       "workflow/definition-of-done.md": [
         "Scope and requirements",
         "Implementation quality",
         "Verification",
+        "Review and safety",
         "Completion status",
       ],
       "workflow/safety-policy.md": [
@@ -148,5 +151,18 @@ describe("universal workflow template content", () => {
         );
       }
     }
+  });
+
+  it("keeps research, verification, and review guidance tool-agnostic", async () => {
+    const lifecycle = await readTemplate("workflow/task-lifecycle.md");
+    const definition = await readTemplate("workflow/definition-of-done.md");
+
+    expect(lifecycle).toContain("read-only inspection");
+    expect(lifecycle).toContain("Delegation is an option, not a requirement");
+    expect(lifecycle).toContain("independent reviewer");
+    expect(lifecycle).toContain("partially verified");
+    expect(definition).toContain("typecheck or unit test alone");
+    expect(lifecycle).not.toMatch(/Claude Code|Next\.js|Payload CMS|\.claude\//);
+    expect(definition).not.toMatch(/Claude Code|Next\.js|Payload CMS|\.claude\//);
   });
 });

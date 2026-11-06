@@ -10,6 +10,7 @@ The installed workflow profile is **{{PROFILE}}**. Apply its additional requirem
 - [ ] The implementation stays within the approved scope.
 - [ ] Unresolved assumptions or requirement gaps are documented.
 - [ ] Relevant existing behavior and compatibility expectations were considered.
+- [ ] Unfamiliar or consequential areas were investigated before implementation, where applicable.
 
 ## 2. Implementation quality
 
@@ -21,16 +22,20 @@ The installed workflow profile is **{{PROFILE}}**. Apply its additional requirem
 ## 3. Verification
 
 - [ ] Relevant project-defined checks were identified.
+- [ ] Checks exercise the changed behavior at an appropriate level.
 - [ ] Authorized checks were run where feasible.
+- [ ] User-facing interface changes were checked in the rendered experience and important interactions when an appropriate environment was available.
 - [ ] Results are reported accurately, including failures.
 - [ ] Checks not run, and the reason they were not run, are disclosed.
 - [ ] No claim of success is made without observed evidence.
 
-Project-specific commands and verification procedures must be confirmed from authoritative project documentation or the responsible human. This checklist does not prescribe universal commands.
+Project-specific commands and verification procedures must be confirmed from authoritative project documentation or the responsible human. This checklist does not prescribe universal commands. A typecheck or unit test alone does not establish that a user-facing experience works.
 
 ## 4. Review and safety
 
-- [ ] The change was reviewed against the request and plan.
+- [ ] The change was reviewed against the request, investigation findings, and plan.
+- [ ] Independent review was used when appropriate and available, or its absence is disclosed when material.
+- [ ] Blocking review findings are resolved before completion.
 - [ ] Security, privacy, data handling, and failure behavior were considered where relevant.
 - [ ] Required approvals were obtained before approval-gated actions.
 - [ ] No secrets or sensitive data were added to source code, logs, or documentation.

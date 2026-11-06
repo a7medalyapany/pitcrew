@@ -21,6 +21,7 @@ Read relevant decision records, debugging notes, and runbooks when they apply to
 
 - Treat confirmed project documentation as the source of truth. Do not turn guesses, detected files, or assumptions into confirmed requirements.
 - If important context is missing or contradictory, identify the uncertainty and ask before making a consequential choice.
+- Investigate unfamiliar or consequential areas before planning. Prefer read-only inspection first, and distinguish observed facts from assumptions.
 - Keep changes within the requested scope. Prefer the smallest coherent change.
 - Follow existing project conventions. Do not introduce a framework, dependency, service, or architectural pattern without a clear need and appropriate approval.
 - Do not claim that a command, test, build, review, or other verification passed unless it was actually performed and its result was observed.
