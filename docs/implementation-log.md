@@ -9,7 +9,7 @@
 - Build tool: tsup.
 - Local development environment: Fedora Linux.
 
-The original build specification remains authoritative for product scope, architecture, safety requirements, and milestone definitions.
+The original build specification remains authoritative for product scope, architecture, safety requirements, and milestone definitions. This log records implementation progress; it does not replace the original specification.
 
 ---
 
@@ -70,7 +70,7 @@ Added the initial stack-independent universal workflow document set under `src/t
 - `AGENTS.md` as the concise project instruction entry point.
 - `docs/project-brief.md` for project purpose, goals, scope, constraints, requirements, and open questions.
 - `docs/architecture.md` for current system structure, boundaries, components, and data flows.
-- `docs/execution-roadmap.md` for status, completed work, next actions, and blockers.
+- `docs/execution-roadmap.md` for status, completed work, next actions, and blockers in projects initialized by Pitcrew.
 - `docs/decisions/README.md` and `docs/decisions/ADR-TEMPLATE.md` for architectural decision records.
 - `docs/debugging-notes/README.md` for reusable, evidence-based debugging records.
 - `docs/runbooks/README.md` for repeatable operational procedures.
@@ -100,15 +100,15 @@ Added `src/profiles/types.ts` and `src/profiles/registry.ts`.
 - Froze the registry and its profile definitions to prevent accidental mutation.
 - Added eight registry tests covering registration/order, default selection, metadata, lookup, ID recognition, hierarchy comparisons, lower-profile boundaries, and immutability.
 
-The registry establishes profile identity and hierarchy. It does not yet decide which template assets are installed. Asset membership through `minimumProfile`, index parsing, and validation belong to M1.3.
+The registry establishes profile identity and hierarchy. It does not by itself decide which template assets are installed. Asset membership through `minimumProfile`, index parsing, and validation belong to M1.3.
 
 ### Agreed profile design rules
 
 - Profiles are additive: Standard includes Minimal-level expectations, and Strict includes Standard-level expectations.
 - Profile selection is independent of adapter selection.
 - Adapter capabilities do not change profile membership.
-- The execution roadmap and documentation discovery files are available in all profiles.
-- Profile-specific workflow expectations will be represented by the template catalog/index rather than duplicated document sets.
+- The generated project execution roadmap and documentation discovery files are available in all profiles.
+- Profile-specific workflow expectations are represented by the template catalog/index rather than duplicated document sets.
 - Hooks and permission changes remain opt-in; Strict workflow guidance does not claim deterministic enforcement by itself.
 
 ---
@@ -146,11 +146,13 @@ Results reported:
 - Vitest: 8 test files passed, 51 tests passed.
 - Production build: passed.
 
-These are user-reported local results; this log does not claim an independent rerun in this patch-preparation environment.
+These are user-reported local results; no independent rerun is claimed here.
 
 ---
 
-## M1.4 direction — Universal workflow refinement
+## M1.4 — Universal workflow refinement
+
+Status: In progress; completion not yet confirmed
 
 The `landing-main` project is a reference fixture for evaluating workflow patterns, not a product template or source directory to copy into Pitcrew.
 
@@ -159,28 +161,79 @@ The useful stack-independent practices identified for the universal workflow are
 - Read-only investigation before planning unfamiliar or consequential work.
 - Evidence-backed findings that distinguish facts, assumptions, and unresolved questions.
 - Independent review for complex, risky, or architecturally significant changes when supported.
-- Verification of the changed behavior in its real environment, especially for user-facing interfaces.
+- Verification of changed behavior in its real environment, especially for user-facing interfaces.
 - Explicit reporting when a check or review could not be performed.
 - Recording recurring lessons in canonical project documentation without creating duplicate sources of truth.
+
+These are identified refinement requirements. The milestone remains in progress until the corresponding canonical workflow documents have been reviewed, updated where appropriate, and verified. Do not copy fixture-specific framework instructions, project content, or implementation details into the universal workflow.
 
 No Next.js/Payload template, Claude-specific assets, hooks, permissions, MCP configuration, or application source are added to the Pitcrew catalog by this work.
 
 ---
 
+## 2026-11-15 — M1.5 Template renderer
+
+Status: Done
+
+Implemented the pure template-rendering layer under `src/templates/renderer/`.
+
+### Scope and design
+
+- Added renderer types, structured rendering errors, and the renderer implementation.
+- Kept rendering separate from filesystem access and mutation. The renderer receives the validated template/index inputs and source content map; it does not read or write files.
+- Applied profile filtering using the additive profile hierarchy.
+- Applied adapter selection so shared assets and assets scoped to selected adapters are included.
+- Applied platform filtering only from explicit input; the renderer does not infer the platform from the host process.
+- Rendered file assets to their indexed destination.
+- Expanded directory assets while preserving paths relative to the indexed source directory.
+- Preserved capability declarations as metadata rather than silently excluding assets based on target capability.
+- Supported the approved placeholders: `PROJECT_NAME`, `PROJECT_SUMMARY`, `PROFILE`, and `TEMPLATE_VERSION`.
+- Used single-pass placeholder substitution so replacement values are not recursively interpreted.
+- Rejected unknown or malformed placeholders.
+- Produced deterministic, stably sorted output and rejected duplicate or nested destination collisions.
+- Returned structured errors and no partial rendered output when rendering fails.
+- Rejected empty directory assets and avoided mutating input data.
+- Kept the result immutable.
+
+### Files added
+
+- `src/templates/renderer/errors.ts`
+- `src/templates/renderer/renderer.ts`
+- `src/templates/renderer/types.ts`
+- `tests/templates/renderer.test.ts`
+
+### Verification record — 2026-11-15
+
+The user reported successful local execution:
+
+```bash
+pnpm typecheck && pnpm test && pnpm build
+```
+
+Results reported:
+
+- TypeScript typecheck: passed.
+- Vitest: 9 test files passed, 64 tests passed.
+- Production build: passed (`dist/cli.js`, 5.54 KB).
+
+These are user-reported local results. No independent rerun is claimed in this documentation update.
+
+---
+
 ## Original roadmap status
 
-| Milestone | Scope                               | Status                                                       |
-| --------- | ----------------------------------- | ------------------------------------------------------------ |
-| M0.1      | Repository foundation               | Done                                                         |
-| M0.2      | Core schemas                        | Not started                                                  |
-| M0.3      | Adapter interface                   | Not started                                                  |
-| M0.4      | CI foundation                       | Implemented                                                  |
-| M1.1      | Universal workflow documents        | Done                                                         |
-| M1.2      | Workflow profiles                   | Done — registry contract; index integration completed in M1.3 |
-| M1.3      | Template index loader and validator | Done                                                         |
-| M1.4      | Universal workflow refinement       | In progress                                                   |
-| M1.5      | Template renderer                   | Not started                                                   |
-| M1.6      | Template tests                      | Not started                                                   |
+| Milestone | Scope | Status |
+| --- | --- | --- |
+| M0.1 | Repository foundation | Done |
+| M0.2 | Core schemas | Not started |
+| M0.3 | Adapter interface | Not started |
+| M0.4 | CI foundation | Implemented |
+| M1.1 | Universal workflow documents | Done |
+| M1.2 | Workflow profiles | Done — registry contract; index integration completed in M1.3 |
+| M1.3 | Template index loader and validator | Done |
+| M1.4 | Universal workflow refinement | In progress; completion not confirmed |
+| M1.5 | Template renderer | Done |
+| M1.6 | Template tests | Not started; scope must follow the original build specification |
 
 The adapter registry, template asset contracts, and profile registry are foundational contracts. They must not be confused with completion of the original M0.2 or M0.3 milestones.
 
@@ -191,12 +244,11 @@ The adapter registry, template asset contracts, and profile registry are foundat
 The following are intentionally not implemented yet:
 
 - Functional adapter generators.
-- Full template catalog registration and profile-based asset selection.
-- Template rendering and placeholder substitution.
+- Full template catalog registration and adapter generator implementations.
 - Installation planning and conflict handling.
 - Filesystem mutation and ownership tracking.
 - Update and uninstall lifecycle.
 - Adapter-specific destination variants in the template index.
 - Hooks, permission changes, and MCP configuration installation.
 
-The `landing-main` project remains a local reference fixture. It is not part of the published template catalog or public package.
+The template renderer exists, but it is not an installer and does not perform filesystem writes. The `landing-main` project remains a local reference fixture. It is not part of the published template catalog or public package.
