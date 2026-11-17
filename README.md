@@ -1,26 +1,57 @@
-# Pitcrew M0.3 adapter contract patch
+# Pitcrew
 
-This patch adds the runtime adapter interface and its input/output contracts.
+Pitcrew is a local-first, adapter-based CLI for installing and maintaining a portable AI engineering workflow in software repositories. It aims to keep one canonical workflow source while adapting its entrypoints and capabilities for tools such as Claude Code, Codex, and OpenCode.
 
-## Files
+## Project status
 
-- `src/adapters/contract.ts`
-- `tests/adapters/contract.test.ts`
+Pitcrew is in early development. The repository currently contains the CLI foundation, workflow template content, profile definitions, template-index validation and loading, a pure template renderer, runtime configuration and manifest schemas, and the shared adapter contract.
 
-## Scope
+The safe installation path is not implemented yet. In particular, project detection, install planning, dry-run preview, filesystem transactions, ownership tracking, concrete adapter generators, update, and uninstall remain future work. Do not use the current package as an installer for real projects.
 
-This is contract groundwork only. It does not implement any concrete adapter or change the adapter registry's capability claims.
+## Design principles
 
-Adapter methods receive explicit, read-only data and return metadata, capability descriptions, file proposals, validation diagnostics, or rendered output. They must not access the filesystem, execute commands, access the network, or mutate inputs. The core remains responsible for filesystem inspection, and a separate transaction layer must apply only approved plans.
+- **Portable core:** canonical workflow documents are tool- and stack-independent.
+- **Native adapters:** tool-specific files are generated only where support is understood.
+- **User-owned projects:** existing files are never silently overwritten or deleted.
+- **Local-first:** project contents are not uploaded to a service.
+- **Inspectable changes:** installation must present a complete plan before writing.
+- **Reversible lifecycle:** install, check, update, and uninstall must preserve local edits.
+- **Honest capabilities:** unsupported or unverified features are not presented as implemented.
+- **Human authority:** destructive, security-sensitive, production, and externally visible actions require explicit approval.
 
-The existing shared template renderer remains the rendering implementation. Concrete adapters can delegate to it while supplying adapter-specific selection and destination behavior in later milestones.
+## Requirements
 
-## Apply and verify
+- Node.js 22.23.0 or newer
+- pnpm 10 for local development
 
-Copy the `src/` and `tests/` directories into the repository without replacing unrelated files, then run:
+## Development
 
 ```bash
+pnpm install
+pnpm dev -- --help
 pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+## Architecture boundaries
+
+- Template validation and rendering are separate from installation planning.
+- The renderer is pure and does not access the filesystem.
+- Adapters propose file operations and diagnostics; they do not write files or execute commands.
+- A future filesystem transaction layer will be the only layer allowed to apply an approved plan.
+- Template-provided scripts are never executed automatically.
+- `fixtures/landing-main/` is a local reference fixture, not a distributable template.
+
+## Repository layout
+
+```text
+src/       CLI, adapters, schemas, profiles, and template engine
+ tests/    Unit and contract tests
+ docs/     Architecture and implementation tracking
+ fixtures/ Local test/reference projects
+```
+
+## Development roadmap
+
+See [`docs/execution-roadmap.md`](docs/execution-roadmap.md) for milestone status and the next implementation steps.

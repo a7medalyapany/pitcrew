@@ -1,63 +1,55 @@
 # Pitcrew Implementation Roadmap
 
-This document tracks implementation of the Pitcrew CLI itself. It is not the `execution-roadmap.md` template installed into projects created with Pitcrew; that generated-project document lives under `src/templates/core/docs/`.
+This roadmap tracks the Pitcrew CLI itself. It is separate from the `execution-roadmap.md` template installed into projects initialized by Pitcrew.
 
-The original build specification remains authoritative for product scope, architecture, safety requirements, and milestone definitions. This roadmap records current status and the next safe implementation sequence without redefining unfinished milestones.
+The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0** is authoritative for product scope, milestone IDs, architecture, and safety requirements. This roadmap records the current implementation status without inventing new milestone IDs.
 
 ## Current position
 
-**Current position:** M1.5 implementation is complete; M1.4 remains open and must be closed before moving on.
+**Milestone 0 is implemented except for final verification of M0.4's expanded CI matrix.** The user's local verification has confirmed the M0.2 and M0.3 contracts. The CI workflow currently covers Linux, macOS, and Windows across Node.js 22, 24, and 26; this change must be merged and its hosted workflow observed before M0.4 is marked complete.
 
-- M0.1 repository foundation: done.
-- Foundational adapter, capability, asset, and profile contracts: implemented as groundwork; these do not close M0.2 or M0.3.
-- M1.1 universal workflow documents: done.
-- M1.2 profile registry: done.
-- M1.3 template index loader and validator: done.
-- M1.4 universal workflow refinement: in progress; completion has not been confirmed.
-- M1.5 template renderer: done and locally verified by the user.
-- M1.6 template tests: not started; retain the original specification's scope.
-
-See [`implementation-log.md`](./implementation-log.md) for implementation details and user-reported verification records.
-
-## Milestone status
-
-| Milestone | Scope | Status | Exit condition / note |
+| Milestone | Original scope | Status | Notes |
 | --- | --- | --- | --- |
-| M0.1 | Repository foundation | Done | CLI package, TypeScript/ESM, test/build setup, CI foundation established. |
-| M0.2 | Core schemas | Not started | Follow the original build specification; do not treat groundwork types as completion. |
-| M0.3 | Adapter interface | Not started | Follow the original build specification; registry metadata is not a functional adapter interface. |
-| M0.4 | CI foundation | Implemented | CI workflow covers the configured Node.js versions. |
-| M1.1 | Universal workflow documents | Done | Stack-independent canonical workflow template documents and content tests exist. |
-| M1.2 | Workflow profiles | Done | Profile registry and additive hierarchy exist; asset membership is handled by M1.3/index data. |
-| M1.3 | Template index loader and validator | Done | Strict schema, catalog consistency, safe paths/sources, and immutable validated index. |
-| M1.4 | Universal workflow refinement | In progress | Review and refine canonical workflow docs using generalizable lessons only; verify resulting docs/tests before marking done. |
-| M1.5 | Template renderer | Done | Pure rendering, filtering, expansion, placeholders, deterministic output, validation, and error handling implemented. |
-| M1.6 | Template tests | Not started | Confirm exact scope against the original build specification before implementation. |
+| M0.1 | Initialize TypeScript Node CLI repository | Done | CLI/package foundation, TypeScript ESM, tests, and build configured. |
+| M0.2 | Define config, manifest, and template-index schemas | Done | Template-index schema plus project-config and installation-manifest schemas exist. User reported typecheck, tests, and build passing. |
+| M0.3 | Define adapter interface and capability vocabulary | Done | Shared adapter contract and capability vocabulary exist. Adapters remain planning-only; no concrete generators are implemented. User reported typecheck, tests, and build passing. |
+| M0.4 | Add CI matrix for Linux/macOS/Windows | Implemented, verification pending | CI matrix covers three operating systems and Node.js 22, 24, and 26. Confirm hosted runs after merge. |
+| M1.1 | Write universal root instructions and workflow docs | Done | Stack-independent core workflow documents and content tests exist. |
+| M1.2 | Write minimal/standard/strict profile indexes | Done | Minimal, Standard, and Strict profiles are represented through the profile registry and `minimumProfile` template-index membership. |
+| M1.3 | Implement template index loader and validator | Done | Strict runtime validation, catalog consistency, safe paths/sources, and immutable validated index. |
+| M1.4 | Implement safe placeholder renderer | Done | Pure renderer supports approved placeholders, profile/adapter/platform filtering, directory expansion, deterministic output, and structured failures. |
+| M1.5 | Add template validation tests | Done, local verification reported | Content, index loader/validator, and renderer tests exist. User reported 12 test files and 86 tests passing after M0.3. |
 
-## Next actions
+There is no M1.6 in the original specification. The renderer is M1.4, and template validation tests are M1.5. Earlier internal notes used different numbering; this roadmap now follows the original specification.
 
-1. **Close M1.4 deliberately.** Inspect the current universal workflow files and identify which of the documented refinement requirements are already present. Make only justified stack-independent changes. Add or update content tests where needed. Do not import fixture-specific stack or application instructions.
-2. **Resolve M1.6 scope from the original build specification.** M1.5 already has renderer-focused unit tests. Before adding more tests, determine whether M1.6 means broader template integration/contract tests, acceptance tests, or another explicitly specified scope. Do not silently redefine it.
-3. **After M1.4 and M1.6 are complete, reassess the next milestone boundary.** Keep rendering, planning, and filesystem mutation as separate layers. Do not start installation behavior until its ownership, conflict, rollback, and path-safety contracts are explicit.
+## Next milestone: M2.1
 
-## Guardrails for the next milestones
+After the M0.4 GitHub Actions matrix completes successfully, begin **M2.1: target path and Git-state inspection**.
 
-- Keep the renderer pure: no filesystem reads/writes, shell execution, network access, or environment-based platform inference.
-- Keep template validation separate from rendering and installation planning.
-- Preserve user-owned project content; never silently overwrite or delete conflicts.
-- Treat paths and symlinks as untrusted input and validate containment before any future filesystem mutation.
-- Do not execute template-provided scripts or install dependencies as a side effect.
-- Keep hooks, permissions, and MCP configuration opt-in and capability-aware; do not imply deterministic enforcement where the target tool does not provide it.
-- Keep adapter-specific behavior behind adapter boundaries; do not duplicate canonical workflow content unnecessarily.
-- Keep `fixtures/landing-main/` local and reference-only. Do not publish, modify, or copy it into the template catalog.
-- Do not claim tests or builds passed unless the result is supplied by the user or independently executed in the relevant environment.
+M2.1 must establish a read-only foundation for later planning:
 
-## Completion reporting
+1. Resolve the requested target path to one explicit installation root.
+2. Validate target existence/type and reject unsafe or ambiguous targets.
+3. Inspect Git repository/root and working-tree state without modifying Git metadata or the working tree.
+4. Report dirty state as information; never reset, stash, checkout, commit, push, or amend.
+5. Define typed results and structured operational errors.
+6. Add tests using temporary directories for non-Git, clean Git, dirty Git, invalid targets, and path edge cases.
 
-For each milestone, record:
+Do not implement project detection, install-plan construction, dry-run output, or filesystem writes as part of M2.1. Those belong to later M2 milestones.
 
-- The exact scope completed and files changed.
-- Decisions made and unresolved questions.
-- Tests added or changed.
-- Exact verification commands and results, distinguishing user-reported results from independently run checks.
-- Remaining implementation boundaries and the next milestone's prerequisites.
+## Non-negotiable implementation boundaries
+
+- Detection and planning are read-only. They never write files or execute project scripts.
+- Adapters and detectors produce data/proposals only. The filesystem transaction layer alone applies approved plans.
+- Build and validate the complete operation plan before any future write.
+- Preserve existing user content. Never overwrite or delete without explicit path-specific approval.
+- Treat paths, archives, and symlinks as untrusted; verify containment beneath the selected target root.
+- No template-provided script execution, automatic dependency installation, telemetry, or repository upload.
+- Do not read secret values or print environment variable contents.
+- Hooks remain disabled by default; permissions must not broaden access by default; MCP endpoints/credentials are not installed by default.
+- Keep `fixtures/landing-main/` local and reference-only. Do not modify, publish, or copy it into templates.
+- Do not claim local checks or hosted CI passed without observed results.
+
+## Completion record requirements
+
+For each milestone, record the exact scope and files changed, design decisions, tests added, commands/results, unverified behavior, and remaining risks. Distinguish user-reported local verification from observed GitHub Actions results.
