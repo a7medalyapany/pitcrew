@@ -4,9 +4,9 @@ Pitcrew is a local-first, adapter-based CLI for installing and maintaining a por
 
 ## Project status
 
-Pitcrew is in early development. The repository currently contains the CLI foundation, workflow template content, profile definitions, template-index validation and loading, a pure template renderer, runtime configuration and manifest schemas, and the shared adapter contract.
+Pitcrew is in early development. The repository contains the CLI foundation, universal workflow content, profile definitions, template-index validation/loading, a pure template renderer, runtime configuration and manifest schemas, the shared adapter contract, and read-only target path/Git-state inspection.
 
-The safe installation path is not implemented yet. In particular, project detection, install planning, dry-run preview, filesystem transactions, ownership tracking, concrete adapter generators, update, and uninstall remain future work. Do not use the current package as an installer for real projects.
+The installation path is not implemented yet. Project detection, install planning, dry-run preview, filesystem transactions, ownership tracking, concrete adapter generators, update, and uninstall remain future work. Do not use the current package as an installer for real projects.
 
 ## Design principles
 
@@ -36,6 +36,8 @@ pnpm build
 
 ## Architecture boundaries
 
+- Target resolution and Git-state inspection are read-only.
+- Git inspection uses fixed subprocess arguments without a shell; it does not mutate repository state.
 - Template validation and rendering are separate from installation planning.
 - The renderer is pure and does not access the filesystem.
 - Adapters propose file operations and diagnostics; they do not write files or execute commands.
@@ -46,7 +48,7 @@ pnpm build
 ## Repository layout
 
 ```text
-src/       CLI, adapters, schemas, profiles, and template engine
+src/       CLI, adapters, inspection, schemas, profiles, and template engine
  tests/    Unit and contract tests
  docs/     Architecture and implementation tracking
  fixtures/ Local test/reference projects

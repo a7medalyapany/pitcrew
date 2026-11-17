@@ -2,253 +2,197 @@
 
 ## Project baseline
 
-- Runtime: Node.js 24.18.0 (project target: Node.js 22+).
-- Package manager: pnpm 10.
+- Runtime: Node.js 22.23.0+ (local development has used Node.js 24.18.0).
+- Package manager: pnpm 10.0.0, pinned through `packageManager` in `package.json`.
 - Language/module system: TypeScript, ESM.
 - Test runner: Vitest.
 - Build tool: tsup.
 - Local development environment: Fedora Linux.
 
-The original build specification remains authoritative for product scope, architecture, safety requirements, and milestone definitions. This log records implementation progress; it does not replace the original specification.
+The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0** remains authoritative for product scope, architecture, safety requirements, and milestone definitions. This log records implementation progress using its original milestone IDs.
 
 ---
 
 ## 2026-11-04 — M0.1 Repository foundation
 
-Status: Done
+**Status: Done**
 
-- Established the repository structure.
+- Established the TypeScript/Node CLI repository foundation.
 - Configured TypeScript and ESM.
 - Added the Commander CLI foundation.
 - Added Vitest and tsup.
-- Added initial CLI identity and command structure.
-- Configured package metadata and Node.js engine requirements.
-- Added CI workflow for Node.js 22, 24, and 26.
+- Added package metadata, Node.js engine requirements, and pnpm package-manager pin.
+- Added the initial CI workflow and project identity.
 
-No adapter generation, template installation, or filesystem mutation behavior is implemented.
-
----
-
-## 2026-11-05 — Architecture contract groundwork
-
-Status: Done
-
-This work establishes foundational contracts ahead of the original M1 milestones. It does not mark the original M0.2 or M0.3 milestones as complete.
-
-### Adapter registry and capability model
-
-- Registered Claude Code, OpenAI Codex, OpenCode, and Generic adapters.
-- Defined stable adapter identifiers.
-- Defined nine adapter capabilities: root instructions, nested instructions, skills, subagents, commands, hooks, permissions, MCP configuration, and review mode.
-- Separated target-tool support from Pitcrew integration status.
-- Target support distinguishes supported, partial, unsupported, and unknown.
-- Pitcrew integration distinguishes native, shared, manual, and not implemented.
-- Kept all Pitcrew integrations marked as not implemented.
-- Left unverified capability claims as unknown.
-- Added tests for adapter registration, capability completeness, and integration status.
-
-Target capability declarations still require verification against official tool documentation before adapter implementation.
-
-### Template asset contracts
-
-- Defined canonical template assets independently of installation behavior.
-- Distinguished asset kind, capabilities, scope, and source.
-- Added file and directory source support.
-- Added shared and adapter-specific asset scopes.
-- Added compile-time contract fixtures and tests.
-
-Installation destinations, profile inclusion, ownership policies, platform constraints, and runtime metadata validation remain future work.
-
----
+No adapter generation, template installation, or filesystem mutation behavior was implemented in this milestone.
 
 ## 2026-11-05 — M1.1 Universal workflow documents
 
-Status: Done
+**Status: Done**
 
-Added the initial stack-independent universal workflow document set under `src/templates/core/`:
+Added the stack-independent workflow document set under `src/templates/core/`:
 
 - `AGENTS.md` as the concise project instruction entry point.
-- `docs/project-brief.md` for project purpose, goals, scope, constraints, requirements, and open questions.
-- `docs/architecture.md` for current system structure, boundaries, components, and data flows.
-- `docs/execution-roadmap.md` for status, completed work, next actions, and blockers in projects initialized by Pitcrew.
-- `docs/decisions/README.md` and `docs/decisions/ADR-TEMPLATE.md` for architectural decision records.
-- `docs/debugging-notes/README.md` for reusable, evidence-based debugging records.
-- `docs/runbooks/README.md` for repeatable operational procedures.
-- `workflow/task-lifecycle.md` for the task collaboration lifecycle.
-- `workflow/definition-of-done.md` for completion expectations.
-- `workflow/safety-policy.md` for authority, boundaries, approvals, and prohibited actions.
+- Project brief, architecture, and execution roadmap documents.
+- Decision-record, debugging-notes, and runbooks discovery documents.
+- Task lifecycle, definition of done, and safety policy documents.
 
-The document set is designed to be stack-independent and to avoid duplicating canonical information across files. Unknown project information must remain explicitly unconfirmed rather than being inferred as fact.
+Unknown project information remains explicitly unconfirmed rather than being inferred as fact. The `landing-main` project is a local reference fixture only; it is not a product template or source directory to copy.
 
-Added Markdown content tests covering required template files, document content/structure, and the approved placeholder set. The approved placeholders are `PROJECT_NAME`, `PROJECT_SUMMARY`, `PROFILE`, and `TEMPLATE_VERSION`.
+## 2026-11-05 — Architecture contract groundwork
 
-The decisions, debugging-notes, and runbooks discovery files are included from Minimal onward. Their availability does not make their use mandatory for every task.
+**Status: Foundational work; later formalized under M0.2 and M0.3**
 
----
+- Registered Claude Code, Codex, OpenCode, and Generic adapter identifiers.
+- Defined nine adapter capabilities and separated target-tool support from Pitcrew integration status.
+- Kept unverified capability claims as unknown and all Pitcrew integrations as not implemented.
+- Defined canonical template asset contracts, including file/directory sources and shared/adapter-specific scope.
+
+This groundwork preceded the formal M0.2 and M0.3 schema and adapter-contract milestones; it did not replace them.
 
 ## 2026-11-06 — M1.2 Workflow profile registry
 
-Status: Done — profile registry contract only
+**Status: Done**
 
-Added `src/profiles/types.ts` and `src/profiles/registry.ts`.
-
-- Defined the stable profile IDs `minimal`, `standard`, and `strict`.
-- Defined profile metadata through `ProfileDefinition`.
-- Defined the additive hierarchy with levels 1, 2, and 3 respectively.
-- Set Standard as the default through `DEFAULT_PROFILE_ID`.
-- Added `listProfiles()`, `getProfile()`, `isProfileId()`, and `isProfileAtLeast()`.
-- Froze the registry and its profile definitions to prevent accidental mutation.
-- Added eight registry tests covering registration/order, default selection, metadata, lookup, ID recognition, hierarchy comparisons, lower-profile boundaries, and immutability.
-
-The registry establishes profile identity and hierarchy. It does not by itself decide which template assets are installed. Asset membership through `minimumProfile`, index parsing, and validation belong to M1.3.
-
-### Agreed profile design rules
-
-- Profiles are additive: Standard includes Minimal-level expectations, and Strict includes Standard-level expectations.
-- Profile selection is independent of adapter selection.
-- Adapter capabilities do not change profile membership.
-- The generated project execution roadmap and documentation discovery files are available in all profiles.
-- Profile-specific workflow expectations are represented by the template catalog/index rather than duplicated document sets.
-- Hooks and permission changes remain opt-in; Strict workflow guidance does not claim deterministic enforcement by itself.
-
----
+- Defined stable `minimal`, `standard`, and `strict` profile IDs with additive levels 1, 2, and 3.
+- Set Standard as the default.
+- Added profile lookup, recognition, listing, and hierarchy helpers.
+- Froze registry definitions and added registry tests.
+- Kept profile selection independent of adapter selection. Hooks and permission changes remain opt-in.
 
 ## 2026-11-06 — M1.3 Template index loader and validator
 
-Status: Done
+**Status: Done**
 
-Implemented the versioned template index contract and runtime validation.
-
-- Added strict Zod schemas for the index and its entries.
+- Added strict runtime schemas for the template index and entries.
 - Validated stable identifiers, semantic versions, portable relative destinations, profile IDs, ownership policies, and platform lists.
-- Added catalog consistency checks for template IDs and versions, asset IDs, adapter scopes, capability references, and complete asset-to-index coverage.
-- Rejected duplicate destinations, case-insensitive path collisions, and parent/child destination conflicts.
-- Added a loader with file-type, symlink, and size checks.
-- Added source validation for safe relative paths, symlink rejection within the template tree, and expected file/directory types.
+- Added catalog consistency checks, collision detection, loader file-type/symlink/size checks, and template-source validation.
 - Deep-froze validated index data.
-- Kept validation pure where possible and separated filesystem checks from schema/catalog validation.
+- Recorded adapter-specific destination variants as deferred in `docs/decisions/ADR-0001-adapter-specific-asset-destinations.md`.
 
-The index still models one destination per asset. Adapter-specific destination variants remain deferred and are recorded in `docs/decisions/ADR-0001-adapter-specific-asset-destinations.md`.
+**Verification — user-reported:** typecheck passed; 8 test files and 51 tests passed; build passed.
 
-### Verification record — 2026-11-06
+## M0.2 — Core schemas
 
-The user reported successful local execution after M1.3:
+**Status: Done**
 
-```bash
-pnpm typecheck
-pnpm test
-pnpm build
-```
+- Added the runtime project configuration schema in `src/config/schema.ts`.
+- Added the installation manifest schema in `src/installation/manifest/schema.ts`.
+- Used strict Zod objects, stable adapter/profile references, semantic-version validation, safe relative-path validation, and bounded fields/collections.
+- Kept detected project metadata separate from user-confirmed project settings.
+- Added schema tests for valid and invalid configuration/manifest inputs.
 
-Results reported:
+**Verification — user-reported on 2026-11-16:** typecheck passed; 11 test files and 81 tests passed; build passed.
 
-- TypeScript typecheck: passed.
-- Vitest: 8 test files passed, 51 tests passed.
-- Production build: passed.
+## M0.3 — Adapter interface and capability vocabulary
 
-These are user-reported local results; no independent rerun is claimed here.
+**Status: Done**
 
----
+- Added the shared adapter contract in `src/adapters/contract.ts`.
+- Defined metadata, target context, existing-project snapshot, planning proposals, validation diagnostics, and pure rendering delegation.
+- Kept adapters declarative: they do not write files, execute commands, access the network, or own approval decisions.
+- Kept the filesystem transaction layer as the only future layer authorized to apply approved plans.
+- Added contract tests.
 
-## M1.4 — Universal workflow refinement
+**Verification — user-reported on 2026-11-16:** typecheck passed; 12 test files and 86 tests passed; build passed.
 
-Status: In progress; completion not yet confirmed
+## M0.4 — Cross-platform CI foundation
 
-The `landing-main` project is a reference fixture for evaluating workflow patterns, not a product template or source directory to copy into Pitcrew.
+**Status: Done**
 
-The useful stack-independent practices identified for the universal workflow are:
+- Configured GitHub Actions for Ubuntu, macOS, and Windows.
+- Added Node.js 22, 24, and 26 to the matrix (9 jobs total).
+- Pinned pnpm through `package.json`'s `packageManager` field; the workflow relies on `pnpm/action-setup@v4` to read that single source of truth.
+- Added frozen-lockfile installation, typecheck, test, and build steps.
 
-- Read-only investigation before planning unfamiliar or consequential work.
-- Evidence-backed findings that distinguish facts, assumptions, and unresolved questions.
-- Independent review for complex, risky, or architecturally significant changes when supported.
-- Verification of changed behavior in its real environment, especially for user-facing interfaces.
-- Explicit reporting when a check or review could not be performed.
-- Recording recurring lessons in canonical project documentation without creating duplicate sources of truth.
+**Verification — observed on GitHub Actions, 2026-11-17:** workflow run `43998666200` completed with all 9 matrix jobs successful.
 
-These are identified refinement requirements. The milestone remains in progress until the corresponding canonical workflow documents have been reviewed, updated where appropriate, and verified. Do not copy fixture-specific framework instructions, project content, or implementation details into the universal workflow.
+## 2026-11-15 — M1.4 Safe placeholder renderer
 
-No Next.js/Payload template, Claude-specific assets, hooks, permissions, MCP configuration, or application source are added to the Pitcrew catalog by this work.
+**Status: Done**
 
----
+Implemented the pure template renderer under `src/templates/renderer/`:
 
-## 2026-11-15 — M1.5 Template renderer
+- Kept rendering separate from filesystem access and mutation.
+- Applied additive profile filtering and selected-adapter filtering.
+- Applied platform filtering only from explicit input.
+- Rendered indexed file assets and expanded directory assets.
+- Supported only `PROJECT_NAME`, `PROJECT_SUMMARY`, `PROFILE`, and `TEMPLATE_VERSION` placeholders.
+- Used single-pass substitution; unknown or malformed placeholders fail.
+- Produced deterministic, sorted output; rejected destination collisions and returned no partial result on failure.
+- Avoided mutating inputs and kept results immutable.
 
-Status: Done
+## M1.5 — Template validation tests
 
-Implemented the pure template-rendering layer under `src/templates/renderer/`.
+**Status: Done**
 
-### Scope and design
+The template test coverage includes core content, template types, index schema/validation, index loading, source validation, and renderer behavior.
 
-- Added renderer types, structured rendering errors, and the renderer implementation.
-- Kept rendering separate from filesystem access and mutation. The renderer receives the validated template/index inputs and source content map; it does not read or write files.
-- Applied profile filtering using the additive profile hierarchy.
-- Applied adapter selection so shared assets and assets scoped to selected adapters are included.
-- Applied platform filtering only from explicit input; the renderer does not infer the platform from the host process.
-- Rendered file assets to their indexed destination.
-- Expanded directory assets while preserving paths relative to the indexed source directory.
-- Preserved capability declarations as metadata rather than silently excluding assets based on target capability.
-- Supported the approved placeholders: `PROJECT_NAME`, `PROJECT_SUMMARY`, `PROFILE`, and `TEMPLATE_VERSION`.
-- Used single-pass placeholder substitution so replacement values are not recursively interpreted.
-- Rejected unknown or malformed placeholders.
-- Produced deterministic, stably sorted output and rejected duplicate or nested destination collisions.
-- Returned structured errors and no partial rendered output when rendering fails.
-- Rejected empty directory assets and avoided mutating input data.
-- Kept the result immutable.
+**Verification — user-reported on 2026-11-16:** typecheck passed; 12 test files and 86 tests passed; build passed. This is the latest reported local suite before M2.1 changes.
+
+## 2026-11-17 — M2.1 Target path and Git-state inspection
+
+**Status: Implemented in the current patch; verification pending**
+
+### Implementation
+
+- Added `src/inspection/errors.ts` for structured target-inspection error codes.
+- Added `src/inspection/target-path.ts` to resolve an explicit target, require an existing directory, reject a final-component symlink, and canonicalize the selected root without writing.
+- Added `src/inspection/git-state.ts` to inspect repository root, branch/detached-HEAD state, and porcelain working-tree status.
+- Added `src/inspection/inspect-target.ts` to compose target resolution and Git inspection.
+- Git is invoked through `execFile` with fixed argument arrays and no shell. Calls have a timeout and output limit; optional Git index writes are disabled; fsmonitor is bypassed; inherited repository override variables are removed.
+- Git state distinguishes no repository, Git unavailable, and a repository with clean/dirty status. Dirty status is reported as information and does not block inspection.
+- Added temporary-directory tests for target validation, symlinks, non-Git directories, clean repositories, nested targets, staged/unstaged/untracked changes, unavailable Git, and the combined inspection result.
 
 ### Files added
 
-- `src/templates/renderer/errors.ts`
-- `src/templates/renderer/renderer.ts`
-- `src/templates/renderer/types.ts`
-- `tests/templates/renderer.test.ts`
+- `src/inspection/errors.ts`
+- `src/inspection/target-path.ts`
+- `src/inspection/git-state.ts`
+- `src/inspection/inspect-target.ts`
+- `tests/inspection/target-path.test.ts`
+- `tests/inspection/git-state.test.ts`
+- `tests/inspection/inspect-target.test.ts`
 
-### Verification record — 2026-11-15
+### Boundaries and outstanding verification
 
-The user reported successful local execution:
-
-```bash
-pnpm typecheck && pnpm test && pnpm build
-```
-
-Results reported:
-
-- TypeScript typecheck: passed.
-- Vitest: 9 test files passed, 64 tests passed.
-- Production build: passed (`dist/cli.js`, 5.54 KB).
-
-These are user-reported local results. No independent rerun is claimed in this documentation update.
+- No project detection, install planning, dry-run preview, filesystem writes, manifest storage, or CLI installation command is included.
+- No Git mutation command is invoked.
+- The final target component is rejected if it is a symlink; parent path components are canonicalized.
+- Local `pnpm typecheck`, `pnpm test`, and `pnpm build`, plus hosted CI, remain unverified until results are reported/observed after applying this patch.
 
 ---
 
 ## Original roadmap status
 
-| Milestone | Scope | Status |
+| Milestone | Original scope | Status |
 | --- | --- | --- |
 | M0.1 | Repository foundation | Done |
-| M0.2 | Core schemas | Not started |
-| M0.3 | Adapter interface | Not started |
-| M0.4 | CI foundation | Implemented |
+| M0.2 | Config, manifest, and template-index schemas | Done |
+| M0.3 | Adapter interface and capability vocabulary | Done |
+| M0.4 | Linux/macOS/Windows CI matrix | Done; 9/9 hosted jobs passed |
 | M1.1 | Universal workflow documents | Done |
-| M1.2 | Workflow profiles | Done — registry contract; index integration completed in M1.3 |
+| M1.2 | Workflow profiles | Done |
 | M1.3 | Template index loader and validator | Done |
-| M1.4 | Universal workflow refinement | In progress; completion not confirmed |
-| M1.5 | Template renderer | Done |
-| M1.6 | Template tests | Not started; scope must follow the original build specification |
+| M1.4 | Safe placeholder renderer | Done |
+| M1.5 | Template validation tests | Done |
+| M2.1 | Target path and Git-state inspection | Implemented; verification pending |
 
-The adapter registry, template asset contracts, and profile registry are foundational contracts. They must not be confused with completion of the original M0.2 or M0.3 milestones.
-
----
+There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is template validation tests.
 
 ## Current implementation boundaries
 
-The following are intentionally not implemented yet:
+The following remain intentionally unimplemented:
 
-- Functional adapter generators.
-- Full template catalog registration and adapter generator implementations.
-- Installation planning and conflict handling.
-- Filesystem mutation and ownership tracking.
-- Update and uninstall lifecycle.
+- Read-only project detection (M2.2).
+- Installation planning and conflict classification (M2.3).
+- Dry-run preview (M2.4).
+- Atomic filesystem transaction (M2.5).
+- Installation manifest/baseline storage (M2.6).
+- `init` command (M2.7).
+- Concrete adapter generators and later lifecycle commands.
+- Update and uninstall behavior.
 - Adapter-specific destination variants in the template index.
 - Hooks, permission changes, and MCP configuration installation.
 
-The template renderer exists, but it is not an installer and does not perform filesystem writes. The `landing-main` project remains a local reference fixture. It is not part of the published template catalog or public package.
+The template renderer is not an installer. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
