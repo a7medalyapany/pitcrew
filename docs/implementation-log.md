@@ -220,7 +220,7 @@ The template test coverage includes core content, template types, index schema/v
 
 ## 2026-11-17 — M2.4 Dry-run preview
 
-**Status: Implemented; local verification pending**
+**Status: Done**
 
 ### Implementation
 
@@ -242,8 +242,42 @@ The template test coverage includes core content, template types, index schema/v
 
 ### Verification
 
-- Local typecheck, full Vitest suite, and build have not yet been run by the user against this patch. Verification is pending.
-- No hosted CI run exists for this patch yet.
+- **Local verification — user-reported on 2026-11-17:** `pnpm typecheck` passed; `pnpm test` passed with 18 test files and 126 tests; `pnpm build` passed.
+- **Hosted CI:** the user reported CI passed. The exact run ID and commit have not been independently recorded in this log.
+
+
+---
+
+## 2026-11-17 — M2.5 Atomic filesystem transaction
+
+**Status: Implemented; local verification passed; hosted CI pending**
+
+### Implementation
+
+- Added `src/installation/transaction/errors.ts` for structured transaction errors.
+- Added `src/installation/transaction/apply-install-plan.ts` as the transaction executor and `src/installation/transaction/index.ts` as its module entry point.
+- Added `tests/installation/transaction/apply-install-plan.test.ts` covering approved creation, managed-file backup/update, missing approval, changed destination preconditions, changed managed-file hashes, symlinked parents, unplanned parent directories, and content-hash mismatch.
+- Requires explicit approval IDs for each file create/update operation. It does not accept a broad force/yes approval.
+- Validates plan operations, destination paths, duplicate/case-colliding destinations, required approvals, and rendered content hashes before transaction setup.
+- Revalidates the target and filesystem preconditions before mutation and again per operation.
+- Uses destination-adjacent temporary files and no-replace publication for file creation. Managed updates retain backups before replacement.
+- Stores transaction journal and backups beneath `.agent-workflow/transactions/<transactionId>/`.
+- On failure, attempts reverse-order rollback. Created files are removed only if they still match the transaction output; backups are restored only when safe. Incomplete rollback retains recovery evidence.
+- Requires parent directories to be explicit plan operations or already-existing directories. A missing unplanned parent is rejected during preflight before transaction state is created.
+
+### Safety and scope boundaries
+
+- The transaction layer is a low-level primitive, not a user-facing installer.
+- It does not capture snapshots, generate plans, obtain interactive approval, or wire any CLI command.
+- It does not invoke a shell, mutate Git, access the network, install dependencies, execute template scripts, recursively delete directories, or modify files outside the selected target.
+- M2.6 manifest/baseline storage and M2.7 `init` orchestration remain required before the installer lifecycle can be exposed.
+- A narrow time-of-check/time-of-use race remains if a hostile concurrent process swaps a parent directory between validation and filesystem operations. Do not claim protection against hostile concurrent filesystem mutation until this is addressed.
+- Rollback logic is implemented, but deterministic injected mid-transaction failure coverage remains a known test-coverage gap.
+
+### Verification
+
+- **Local verification — user-reported on 2026-11-17 after the preflight fix:** `pnpm typecheck` passed; `pnpm test` passed with 19 test files and 134 tests; `pnpm build` passed.
+- **Hosted CI:** pending; no run ID or commit has been recorded here.
 
 ---
 
@@ -263,7 +297,8 @@ The template test coverage includes core content, template types, index schema/v
 | M2.1 | Target path and Git-state inspection | Done; local verification and 9/9 hosted CI jobs passed |
 | M2.2 | Read-only project detection | Done; local verification and 9/9 hosted CI jobs passed |
 | M2.3 | Install plan and conflict classifier | Done; local verification and 9/9 hosted CI jobs passed |
-| M2.4 | Dry-run preview | Implemented; local verification pending |
+| M2.4 | Dry-run preview | Done; local verification passed (18 files/126 tests) |
+| M2.5 | Atomic filesystem transaction | Implemented; local verification passed (19 files/134 tests); hosted CI pending |
 
 There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is template validation tests.
 
@@ -271,7 +306,6 @@ There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is
 
 The following remain intentionally unimplemented:
 
-- Atomic filesystem transaction (M2.5).
 - Installation manifest/baseline storage (M2.6).
 - `init` command (M2.7).
 - Concrete adapter generators and later lifecycle commands.
@@ -279,4 +313,4 @@ The following remain intentionally unimplemented:
 - Adapter-specific destination variants in the template index.
 - Hooks, permission changes, and MCP configuration installation.
 
-The template renderer, planner, and preview are not an installer. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
+The template renderer, planner, preview, and transaction primitive are not yet a usable installer. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.

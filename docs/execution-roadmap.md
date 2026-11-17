@@ -6,7 +6,7 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 
 ## Current position
 
-**Milestones M0 and M1 are complete. M2.1, M2.2, and M2.3 are complete and verified locally and in hosted CI. M2.4 is implemented and awaiting local verification.** M2.3 local verification was reported on 2026-11-17: typecheck passed, 17 test files/120 tests passed, and build passed. GitHub Actions run `44167670823` on commit `d7d1ed4` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs.
+**Milestones M0, M1, and M2.1–M2.4 are complete. M2.5 is implemented and verified locally; hosted CI verification is pending.** M2.4 local verification was reported on 2026-11-17: typecheck passed, 18 test files/126 tests passed, and build passed. M2.5 local verification was reported on 2026-11-17: typecheck passed, 19 test files/134 tests passed, and build passed. M2.3 hosted CI run `44167670823` on commit `d7d1ed4` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs.
 
 | Milestone | Original scope | Status | Notes |
 | --- | --- | --- | --- |
@@ -22,7 +22,8 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 | M2.1 | Implement target path and Git-state inspection | Done | User reported typecheck, 15 test files/98 tests, and build passing. Hosted CI run `44001430639` passed all 9 matrix jobs. |
 | M2.2 | Implement read-only project detection | Done | User reported typecheck, 16 test files/107 tests, and build passing. Hosted CI run `44003468325` passed all 9 matrix jobs. |
 | M2.3 | Implement install plan and conflict classifier | Done | User reported typecheck, 17 test files/120 tests, and build passing. Hosted CI run `44167670823` passed all 9 matrix jobs. |
-| M2.4 | Implement dry-run preview | Implemented; local verification pending | Pure preview model and deterministic text/JSON formatter. No writes, command execution, or approval grants. |
+| M2.4 | Implement dry-run preview | Done | Pure preview model and deterministic text/JSON formatter. User-reported local verification: 18 test files/126 tests, typecheck, and build passed. |
+| M2.5 | Implement atomic filesystem transaction | Implemented; local verification passed, hosted CI pending | Explicit path-specific approvals, preflight/revalidation, atomic writes, backups, transaction journal, and rollback. User-reported: 19 test files/134 tests, typecheck, and build passed. |
 
 There is no M1.6 in the original specification. The renderer is M1.4, and template validation tests are M1.5.
 
@@ -87,9 +88,24 @@ The M2.4 preview layer:
 
 The preview formatter is not yet wired to `init --dry-run`; the `init` command and its orchestration are M2.7. M2.4 provides the deterministic preview boundary that the later command will call.
 
-## Next milestone: M2.5
+## M2.5 implementation boundary
 
-Implement the atomic filesystem transaction layer from the original specification. It must consume a fully validated plan only after explicit path-specific approval, revalidate preconditions immediately before mutation, use same-filesystem temporary writes and backups, and roll back safely on failure. It must not be exposed as a usable installer until manifest ownership/baseline handling and `init` orchestration are in place.
+The M2.5 transaction layer:
+
+1. Accepts a fully formed install plan, rendered file contents keyed by destination, and explicit path-specific approval IDs.
+2. Rejects plans with conflicts or manual actions, invalid/duplicate operations, unsafe or colliding destinations, missing approvals, and content whose SHA-256 does not match the plan.
+3. Revalidates the target root and filesystem preconditions before transaction setup and again immediately before each operation.
+4. Requires destination parent directories to exist already or be created by explicit `createDirectory` operations in the plan. It does not silently create unplanned project directories.
+5. Writes through destination-adjacent temporary files and publishes new files without replacing an unexpected destination. Managed updates retain backups before replacement.
+6. Records transaction state and per-operation progress under `.agent-workflow/transactions/`.
+7. Attempts reverse-order rollback after failure, removes created files only when their content still matches the transaction output, restores backups only when safe, and retains recovery evidence when rollback is incomplete.
+8. Uses no shell, Git mutation, network, template script execution, dependency installation, recursive deletion, or CLI command integration.
+
+The transaction primitive is not yet a usable installer. M2.6 must add installation manifest and baseline storage, and M2.7 must provide the `init` orchestration. A narrow concurrent-filesystem race remains between path validation and filesystem operations; this layer must not be presented as production-safe against a hostile concurrent process until that risk is addressed.
+
+## Next milestone: M2.6
+
+Implement installation manifest and baseline storage from the original specification. It must record ownership and installed baselines needed for safe future update/uninstall behavior, integrate with the transaction boundary without allowing adapters or planners to write, and preserve user modifications. Do not wire the user-facing `init` command early; that remains M2.7.
 
 ## Non-negotiable implementation boundaries
 
