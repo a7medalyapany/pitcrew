@@ -6,7 +6,7 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 
 ## Current position
 
-**Milestones M0 and M1 are complete. M2.1 and M2.2 are complete and verified locally and in hosted CI. M2.3 is implemented and awaits local verification.** M2.2 local verification: typecheck passed, 16 test files/107 tests passed, and build passed (user-reported). GitHub Actions run `44003468325` on commit `36df61d` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs.
+**Milestones M0 and M1 are complete. M2.1, M2.2, and M2.3 are complete and verified locally and in hosted CI. M2.4 is implemented and awaiting local verification.** M2.3 local verification was reported on 2026-11-17: typecheck passed, 17 test files/120 tests passed, and build passed. GitHub Actions run `44167670823` on commit `d7d1ed4` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs.
 
 | Milestone | Original scope | Status | Notes |
 | --- | --- | --- | --- |
@@ -21,7 +21,8 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 | M1.5 | Add template validation tests | Done | Content, index loader/validator, source validator, and renderer tests exist. User reported 12 test files and 86 tests passing. |
 | M2.1 | Implement target path and Git-state inspection | Done | User reported typecheck, 15 test files/98 tests, and build passing. Hosted CI run `44001430639` passed all 9 matrix jobs. |
 | M2.2 | Implement read-only project detection | Done | User reported typecheck, 16 test files/107 tests, and build passing. Hosted CI run `44003468325` passed all 9 matrix jobs. |
-| M2.3 | Implement install plan and conflict classifier | Implemented; local verification pending | Pure planner consumes rendered outputs, target inspection, a project snapshot, and optional manifest ownership evidence. No writes or approvals. |
+| M2.3 | Implement install plan and conflict classifier | Done | User reported typecheck, 17 test files/120 tests, and build passing. Hosted CI run `44167670823` passed all 9 matrix jobs. |
+| M2.4 | Implement dry-run preview | Implemented; local verification pending | Pure preview model and deterministic text/JSON formatter. No writes, command execution, or approval grants. |
 
 There is no M1.6 in the original specification. The renderer is M1.4, and template validation tests are M1.5.
 
@@ -71,13 +72,28 @@ The M2.3 planning engine:
 
 The planner is a domain function, not an installer. Its inputs must come from trusted validation and a fresh snapshot. The later apply layer must revalidate preconditions to defend against changes between preview and apply.
 
-## Next milestone: M2.4
+## M2.4 implementation boundary
 
-Implement the dry-run preview from the original specification. It should present the plan's creates, updates, skips, conflicts, manual actions, Git dirty-state warning, and required approvals without changing the target filesystem. It must not apply operations.
+The M2.4 preview layer:
+
+1. Accepts an already-created immutable install plan. It does not inspect the target or capture a filesystem snapshot.
+2. Produces a deterministic, immutable preview model with target/template metadata, risk, operation summary, operations, conflicts, manual actions, required approvals, Git state, and warnings.
+3. Formats the preview as readable terminal text or machine-readable JSON. The JSON output carries a schema version marker.
+4. Presents create-directory, create-file, managed-update, skip, conflict, and manual-integration operations separately, including relevant paths and reasons.
+5. Marks every operation whose plan metadata requires approval/review. A preview never grants approval, including under any future non-interactive or `--yes` mode.
+6. Warns when Git is unavailable or the working tree is dirty. Dirty-state output reports staged, unstaged, untracked, and conflicted counts without dumping changed paths. A non-Git target is not an error.
+7. Does not include rendered file contents in the preview model or output.
+8. Performs no filesystem writes, deletes, command execution, network access, or mutation of the supplied plan.
+
+The preview formatter is not yet wired to `init --dry-run`; the `init` command and its orchestration are M2.7. M2.4 provides the deterministic preview boundary that the later command will call.
+
+## Next milestone: M2.5
+
+Implement the atomic filesystem transaction layer from the original specification. It must consume a fully validated plan only after explicit path-specific approval, revalidate preconditions immediately before mutation, use same-filesystem temporary writes and backups, and roll back safely on failure. It must not be exposed as a usable installer until manifest ownership/baseline handling and `init` orchestration are in place.
 
 ## Non-negotiable implementation boundaries
 
-- Detection and planning are read-only. They never write files or execute project scripts.
+- Detection, planning, and preview are read-only. They never write files or execute project scripts.
 - Adapters and detectors produce data/proposals only. The filesystem transaction layer alone applies approved plans.
 - Build and validate the complete operation plan before any future write.
 - Preserve existing user content. Never overwrite or delete without explicit path-specific approval.

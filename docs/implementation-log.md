@@ -190,7 +190,7 @@ The template test coverage includes core content, template types, index schema/v
 
 ## 2026-11-17 — M2.3 Install planning and conflict classification
 
-**Status: Implemented; local verification pending**
+**Status: Done**
 
 ### Implementation
 
@@ -213,12 +213,37 @@ The template test coverage includes core content, template types, index schema/v
 - The future transaction layer must revalidate snapshot preconditions immediately before applying operations to prevent preview/apply races.
 - No CLI command or dry-run UI is included; those belong to M2.4 and M2.7.
 
-### Assistant-side verification
+### Verification
 
-- Strict TypeScript checking of the planner and its tests passed using the repository compiler options and temporary declarations for unavailable test-runner types.
-- Runtime smoke checks passed for create planning, unmanaged-file preservation, managed-file update, modified-managed conflict, existing instruction entrypoint manual action, and symlink ancestor rejection.
-- The full repository `pnpm typecheck`, Vitest suite, `pnpm build`, and hosted CI have **not** been run against this patch. User verification is pending.
-- **First user test run — user-reported on 2026-11-17:** typecheck and build passed; 118/120 tests passed. Two managed-file tests incorrectly used root `AGENTS.md`, which is intentionally classified as a manual-integration entrypoint before managed-file update logic. The first correction changed the snapshot and manifest paths but accidentally left the rendered fixture at its default `AGENTS.md` destination. The planner therefore correctly classified a different path as a new file, leaving the two tests failing. The follow-up correction explicitly renders `docs/workflow/task-lifecycle.md` in both managed-file tests, aligning rendered destination, snapshot path, and manifest destination. The root-entrypoint preservation test remains unchanged. The second user test run then exposed a separate fixture issue: the snapshot omitted the existing `docs` and `docs/workflow` directories, so the planner correctly emitted a `createDirectory` operation before the managed-file update. The update test incorrectly assumed the update would be `operations[0]`. The next correction adds both existing directories to that snapshot and locates the update by destination, rather than relying on operation ordering. Re-run verification is pending.
+- **Local verification — user-reported on 2026-11-17:** `pnpm typecheck` passed; `pnpm test` passed with 17 test files and 120 tests; `pnpm build` passed.
+- **Hosted CI — observed on GitHub Actions:** run `44167670823`, commit `d7d1ed4`, completed successfully with all 9 matrix jobs passing across Ubuntu, macOS, and Windows on Node.js 22, 24, and 26.
+
+## 2026-11-17 — M2.4 Dry-run preview
+
+**Status: Implemented; local verification pending**
+
+### Implementation
+
+- Added `src/planning/preview.ts` with `createInstallPreview()` and `formatInstallPreview()`.
+- Builds a deterministic, immutable preview model from an existing install plan without filesystem, process, or network access.
+- Presents target and template metadata, profile, adapters, risk, operation counts, every operation category, conflict details, manual integration actions, and operations requiring review/approval.
+- Adds a warning when Git is unavailable and a detailed count-based warning when the working tree is dirty. It does not expose changed file paths.
+- Supports readable terminal text and machine-readable JSON with a schema version marker.
+- Does not include rendered file contents. Preview output explicitly states that no files were written and that previewing does not grant approval.
+- Added `tests/planning/preview.test.ts` for all operation categories, required approvals, dirty/unavailable/non-repository Git states, text/JSON formatting, immutability, and empty plans.
+
+### Safety and scope boundaries
+
+- Preview consumes the plan; it does not re-inspect the target or capture a snapshot.
+- No filesystem writes/deletes, command execution, network access, or approval prompts occur.
+- A dirty Git working tree is a warning, not a blocker. The warning contains staged, unstaged, untracked, and conflicted counts only.
+- The preview formatter is not wired to `init --dry-run`; `init` orchestration remains M2.7.
+- The later apply layer must obtain explicit approval and revalidate plan preconditions immediately before mutation.
+
+### Verification
+
+- Local typecheck, full Vitest suite, and build have not yet been run by the user against this patch. Verification is pending.
+- No hosted CI run exists for this patch yet.
 
 ---
 
@@ -237,7 +262,8 @@ The template test coverage includes core content, template types, index schema/v
 | M1.5 | Template validation tests | Done |
 | M2.1 | Target path and Git-state inspection | Done; local verification and 9/9 hosted CI jobs passed |
 | M2.2 | Read-only project detection | Done; local verification and 9/9 hosted CI jobs passed |
-| M2.3 | Install plan and conflict classifier | Implemented; local verification pending |
+| M2.3 | Install plan and conflict classifier | Done; local verification and 9/9 hosted CI jobs passed |
+| M2.4 | Dry-run preview | Implemented; local verification pending |
 
 There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is template validation tests.
 
@@ -245,7 +271,6 @@ There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is
 
 The following remain intentionally unimplemented:
 
-- Dry-run preview (M2.4).
 - Atomic filesystem transaction (M2.5).
 - Installation manifest/baseline storage (M2.6).
 - `init` command (M2.7).
@@ -254,4 +279,4 @@ The following remain intentionally unimplemented:
 - Adapter-specific destination variants in the template index.
 - Hooks, permission changes, and MCP configuration installation.
 
-The template renderer and planner are not an installer. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
+The template renderer, planner, and preview are not an installer. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
