@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, readFile, lstat, readdir, rm, writeFile, symlink } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, lstat, readdir, realpath, rm, writeFile, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -9,7 +9,14 @@ import { InstallTransactionError } from "../../../src/installation/transaction/e
 
 const roots: string[] = [];
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
-async function root() { const path = await mkdtemp(join(tmpdir(), "pitcrew-tx-")); roots.push(path); return path; }
+async function root() {
+  const path = await mkdtemp(join(tmpdir(), "pitcrew-tx-"));
+  roots.push(path);
+  // InstallPlan.targetRoot is the canonicalPath returned by inspectTarget().
+  // mkdtemp() may return a non-canonical alias on macOS (for example /var ->
+  // /private/var), so fixtures must obey the same contract as production.
+  return realpath(path);
+}
 afterEach(async () => { await Promise.all(roots.splice(0).map((path) => rm(path, { recursive: true, force: true }))); });
 function operation(kind: InstallOperation["kind"], destination: string, content?: string, existingHash?: string): InstallOperation {
   return {
