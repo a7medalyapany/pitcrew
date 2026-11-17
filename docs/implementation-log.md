@@ -140,7 +140,7 @@ The template test coverage includes core content, template types, index schema/v
 - Added `src/inspection/target-path.ts` to resolve an explicit target, require an existing directory, reject a final-component symlink, and canonicalize the selected root without writing.
 - Added `src/inspection/git-state.ts` to inspect repository root, branch/detached-HEAD state, and porcelain working-tree status.
 - Added `src/inspection/inspect-target.ts` to compose target resolution and Git inspection.
-- Git is invoked through `execFile` with fixed argument arrays and no shell. Calls have a timeout and output limit; optional Git index writes are disabled; fsmonitor is bypassed; inherited repository override variables are removed.
+- Git is invoked through `execFile` with fixed argument arrays and no shell. Calls have a timeout and output limit; optional Git index writes are disabled; fsmonitor is bypassed; inherited Git repository override variables are removed.
 - Git state distinguishes no repository, Git unavailable, and a repository with clean/dirty status. Dirty status is reported as information and does not block inspection.
 - Added temporary-directory tests for target validation, symlinks, non-Git directories, clean repositories, nested targets, staged/unstaged/untracked changes, unavailable Git, and the combined inspection result.
 
@@ -159,7 +159,7 @@ The template test coverage includes core content, template types, index schema/v
 
 ## 2026-11-17 — M2.2 Read-only project detection
 
-**Status: Implemented; local verification pending**
+**Status: Done**
 
 ### Implementation
 
@@ -185,8 +185,40 @@ The template test coverage includes core content, template types, index schema/v
 
 ### Verification
 
-- **Assistant-side smoke check:** transpiled the detector and exercised a temporary JavaScript/TypeScript workspace. It returned the expected languages, Next.js/React framework evidence, pnpm package manager, AGENTS.md presence, and nested workspace manifest.
-- Full project `pnpm typecheck`, Vitest suite, build, and hosted CI have not yet been run against this patch. User verification is pending.
+- **Local verification — user-reported on 2026-11-17:** `pnpm typecheck` passed; `pnpm test` passed with 16 test files and 107 tests; `pnpm build` passed.
+- **Hosted CI — observed on 2026-11-17:** run `44003468325`, commit `36df61d`, completed with all 9 matrix jobs successful across Ubuntu, macOS, and Windows on Node.js 22, 24, and 26.
+
+## 2026-11-17 — M2.3 Install planning and conflict classification
+
+**Status: Implemented; local verification pending**
+
+### Implementation
+
+- Added `src/planning/types.ts` for project snapshot entries, optional validated manifest ownership evidence, operation kinds, conflict codes, immutable plan shape, risk, and summary.
+- Added `src/planning/errors.ts` for typed planning failures.
+- Added `src/planning/classify-conflict.ts` for pure single-file conflict classification.
+- Added `src/planning/create-install-plan.ts` for deterministic operation and plan generation.
+- Plans missing parent directories and new files; skips files already equal to rendered content.
+- Existing unmanaged files are conflicts. Existing root `AGENTS.md` and `CLAUDE.md` entrypoints, shared entrypoints, and user-config files become manual actions; no automatic append or semantic merge is attempted.
+- A managed update is proposed only when the manifest template ID matches, the manifest classifies the file as managed, and the current file hash matches the recorded installed hash. Modified managed files remain conflicts.
+- Rejects unsafe paths, malformed hashes, case-colliding snapshot paths, symlink destinations/ancestors, non-directory ancestors, file/directory collisions, and file destinations with existing descendants.
+- Uses stable operation IDs and a deterministic plan ID; freezes plan output. Carries Git inspection state into the plan for later preview.
+
+### Safety and scope boundaries
+
+- The planner receives a snapshot; it does not capture/read the filesystem itself.
+- The planner does not write, append, delete, obtain approvals, execute commands, or access the network.
+- `approval` fields describe requirements for the future apply layer; they are not approvals or permission grants.
+- The planner does not perform arbitrary Markdown merging. Existing instruction entrypoints require manual integration.
+- The future transaction layer must revalidate snapshot preconditions immediately before applying operations to prevent preview/apply races.
+- No CLI command or dry-run UI is included; those belong to M2.4 and M2.7.
+
+### Assistant-side verification
+
+- Strict TypeScript checking of the planner and its tests passed using the repository compiler options and temporary declarations for unavailable test-runner types.
+- Runtime smoke checks passed for create planning, unmanaged-file preservation, managed-file update, modified-managed conflict, existing instruction entrypoint manual action, and symlink ancestor rejection.
+- The full repository `pnpm typecheck`, Vitest suite, `pnpm build`, and hosted CI have **not** been run against this patch. User verification is pending.
+- **First user test run — user-reported on 2026-11-17:** typecheck and build passed; 118/120 tests passed. Two managed-file tests incorrectly used root `AGENTS.md`, which is intentionally classified as a manual-integration entrypoint before managed-file update logic. The first correction changed the snapshot and manifest paths but accidentally left the rendered fixture at its default `AGENTS.md` destination. The planner therefore correctly classified a different path as a new file, leaving the two tests failing. The follow-up correction explicitly renders `docs/workflow/task-lifecycle.md` in both managed-file tests, aligning rendered destination, snapshot path, and manifest destination. The root-entrypoint preservation test remains unchanged. The second user test run then exposed a separate fixture issue: the snapshot omitted the existing `docs` and `docs/workflow` directories, so the planner correctly emitted a `createDirectory` operation before the managed-file update. The update test incorrectly assumed the update would be `operations[0]`. The next correction adds both existing directories to that snapshot and locates the update by destination, rather than relying on operation ordering. Re-run verification is pending.
 
 ---
 
@@ -204,7 +236,8 @@ The template test coverage includes core content, template types, index schema/v
 | M1.4 | Safe placeholder renderer | Done |
 | M1.5 | Template validation tests | Done |
 | M2.1 | Target path and Git-state inspection | Done; local verification and 9/9 hosted CI jobs passed |
-| M2.2 | Read-only project detection | Implemented; local verification pending |
+| M2.2 | Read-only project detection | Done; local verification and 9/9 hosted CI jobs passed |
+| M2.3 | Install plan and conflict classifier | Implemented; local verification pending |
 
 There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is template validation tests.
 
@@ -212,7 +245,6 @@ There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is
 
 The following remain intentionally unimplemented:
 
-- Installation planning and conflict classification (M2.3).
 - Dry-run preview (M2.4).
 - Atomic filesystem transaction (M2.5).
 - Installation manifest/baseline storage (M2.6).
@@ -222,4 +254,4 @@ The following remain intentionally unimplemented:
 - Adapter-specific destination variants in the template index.
 - Hooks, permission changes, and MCP configuration installation.
 
-The template renderer is not an installer. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
+The template renderer and planner are not an installer. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.

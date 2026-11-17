@@ -6,7 +6,7 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 
 ## Current position
 
-**Milestones M0 and M1 are complete. M2.1 is complete and verified locally and in hosted CI. M2.2 is implemented and awaits local verification.** GitHub Actions run `44001430639` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs.
+**Milestones M0 and M1 are complete. M2.1 and M2.2 are complete and verified locally and in hosted CI. M2.3 is implemented and awaits local verification.** M2.2 local verification: typecheck passed, 16 test files/107 tests passed, and build passed (user-reported). GitHub Actions run `44003468325` on commit `36df61d` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs.
 
 | Milestone | Original scope | Status | Notes |
 | --- | --- | --- | --- |
@@ -19,8 +19,9 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 | M1.3 | Implement template index loader and validator | Done | Strict runtime validation, catalog consistency, safe paths/sources, and immutable validated index. |
 | M1.4 | Implement safe placeholder renderer | Done | Pure renderer supports approved placeholders, profile/adapter/platform filtering, directory expansion, deterministic output, and structured failures. |
 | M1.5 | Add template validation tests | Done | Content, index loader/validator, source validator, and renderer tests exist. User reported 12 test files and 86 tests passing. |
-| M2.1 | Implement target path and Git-state inspection | Done | User reported typecheck, 15 test files/98 tests, and build passing. Hosted CI run `44001430639` passed all 9 matrix jobs after correcting canonical-path test expectations. |
-| M2.2 | Implement read-only project detection | Implemented; local verification pending | Bounded manifest/config discovery, evidence/confidence records, framework/package-manager hints, agent-config detection, and monorepo ambiguity reporting are implemented. No commands are executed and no project files are changed. |
+| M2.1 | Implement target path and Git-state inspection | Done | User reported typecheck, 15 test files/98 tests, and build passing. Hosted CI run `44001430639` passed all 9 matrix jobs. |
+| M2.2 | Implement read-only project detection | Done | User reported typecheck, 16 test files/107 tests, and build passing. Hosted CI run `44003468325` passed all 9 matrix jobs. |
+| M2.3 | Implement install plan and conflict classifier | Implemented; local verification pending | Pure planner consumes rendered outputs, target inspection, a project snapshot, and optional manifest ownership evidence. No writes or approvals. |
 
 There is no M1.6 in the original specification. The renderer is M1.4, and template validation tests are M1.5.
 
@@ -53,9 +54,26 @@ The M2.2 detector:
 
 The detector currently performs bounded shallow discovery, not a full repository index. The report is advisory and may contain false positives/negatives; the user must confirm project facts and commands later.
 
-## Next milestone: M2.3
+## M2.3 implementation boundary
 
-Implement the install plan and conflict classifier from the original specification. It must consume the validated template index, rendered outputs, target inspection, and existing-project snapshot; classify create/merge/skip/conflict actions; and remain read-only. It must not write files or decide approvals. The filesystem transaction layer remains the only layer allowed to apply an approved plan.
+The M2.3 planning engine:
+
+1. Accepts the already-rendered template output, canonical target inspection, an explicit read-only project snapshot, and optional ownership records from a validated installation manifest.
+2. Validates snapshot paths, regular-file hashes, manifest hashes, and case-insensitive path uniqueness before producing operations.
+3. Produces deterministic operation IDs and a plan ID from the target, template selection, snapshot fingerprint, and operations. The result is immutable.
+4. Plans missing parent directories and file creation without mutating the project.
+5. Skips a destination whose current content hash already matches the rendered content.
+6. Never replaces an unmanaged existing file. Existing root `AGENTS.md`/`CLAUDE.md` entrypoints and existing shared-entrypoint/user-config files become manual integration actions, not automatic merges.
+7. Proposes an update only when the manifest belongs to the same template, classifies the file as managed, and the current file hash matches its recorded installed hash. Modified managed files are conflicts and remain untouched.
+8. Rejects symlink destinations, symlinked ancestors, non-directory ancestors, file/directory collisions, destination paths with existing descendants, unsafe paths, and case-colliding snapshot entries.
+9. Reports conflicts, manual actions, risk, operation counts, and approval requirements. It does not obtain approval or execute operations.
+10. Does not read the filesystem itself. Snapshot capture is a separate read-only responsibility; applying the plan belongs exclusively to the future filesystem transaction layer.
+
+The planner is a domain function, not an installer. Its inputs must come from trusted validation and a fresh snapshot. The later apply layer must revalidate preconditions to defend against changes between preview and apply.
+
+## Next milestone: M2.4
+
+Implement the dry-run preview from the original specification. It should present the plan's creates, updates, skips, conflicts, manual actions, Git dirty-state warning, and required approvals without changing the target filesystem. It must not apply operations.
 
 ## Non-negotiable implementation boundaries
 
