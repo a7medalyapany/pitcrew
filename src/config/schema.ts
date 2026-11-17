@@ -58,6 +58,7 @@ const detectionSchema = z.strictObject({
   languages: z.array(detectionRecordSchema).max(100).optional(),
   frameworks: z.array(detectionRecordSchema).max(100).optional(),
   packageManagers: z.array(detectionRecordSchema).max(100).optional(),
+  agentConfigs: z.array(detectionRecordSchema).max(100).optional(),
 });
 
 const commandsSchema = z.record(

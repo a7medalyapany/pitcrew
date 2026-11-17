@@ -90,7 +90,7 @@ This groundwork preceded the formal M0.2 and M0.3 schema and adapter-contract mi
 
 - Added the shared adapter contract in `src/adapters/contract.ts`.
 - Defined metadata, target context, existing-project snapshot, planning proposals, validation diagnostics, and pure rendering delegation.
-- Kept adapters declarative: they do not write files, execute commands, access the network, or own approval decisions.
+- Kept adapters declarative: they do not write files, execute commands, access the network, or mutate the supplied inputs.
 - Kept the filesystem transaction layer as the only future layer authorized to apply approved plans.
 - Added contract tests.
 
@@ -132,7 +132,7 @@ The template test coverage includes core content, template types, index schema/v
 
 ## 2026-11-17 — M2.1 Target path and Git-state inspection
 
-**Status: Implementation complete; local verification passed; cross-platform CI correction in progress**
+**Status: Done**
 
 ### Implementation
 
@@ -144,29 +144,49 @@ The template test coverage includes core content, template types, index schema/v
 - Git state distinguishes no repository, Git unavailable, and a repository with clean/dirty status. Dirty status is reported as information and does not block inspection.
 - Added temporary-directory tests for target validation, symlinks, non-Git directories, clean repositories, nested targets, staged/unstaged/untracked changes, unavailable Git, and the combined inspection result.
 
-### Files added by the M2.1 implementation
-
-- `src/inspection/errors.ts`
-- `src/inspection/target-path.ts`
-- `src/inspection/git-state.ts`
-- `src/inspection/inspect-target.ts`
-- `tests/inspection/target-path.test.ts`
-- `tests/inspection/git-state.test.ts`
-- `tests/inspection/inspect-target.test.ts`
-
-### Verification and cross-platform correction
+### Verification
 
 - **Local verification — user-reported on 2026-11-17:** `pnpm typecheck` passed; `pnpm test` passed with 15 test files and 98 tests; `pnpm build` passed.
-- **Hosted CI — observed:** run `44000618418` started against commit `3dcc5212883cd38940a9911283c67d1a0d660a75`. Ubuntu Node 22/24/26 jobs passed typecheck and tests at the time of inspection. macOS Node 22/24/26 and Windows Node 22/24/26 jobs failed five assertions across the three inspection test files; the three Ubuntu jobs passed.
-- The failures are caused by tests assuming the temporary-directory spelling is identical to its canonical path. macOS resolves `/var/folders/...` to `/private/var/folders/...`; Windows may resolve a short-name path such as `C:\Users\RUNNER~1\...` to its long-name form such as `C:\Users\runneradmin\...`. The implementation intentionally returns canonical paths; tests must compare against `realpath()` rather than assume the temporary-directory spelling is canonical.
-- The correction updates only test expectations to calculate canonical paths with `realpath()`. It does not weaken symlink checks or change runtime behavior.
-- The first hosted run completed with all three Ubuntu jobs passing and the six macOS/Windows jobs failing on the same path-alias assumptions. The corrected test patch has not yet been run through CI.
+- **Hosted CI — observed:** initial run `44000618418` exposed path-alias assumptions in tests on macOS and Windows. The runtime implementation was unchanged.
+- Updated test expectations to compare paths with `realpath()` rather than assuming the temporary-directory spelling is canonical.
+- **Hosted CI — observed on 2026-11-17:** run `44001430639`, commit `60c4313a90e70f74008dadb41b49c41a54fc8aa2`, completed successfully with all 9 matrix jobs passing across Ubuntu, macOS, and Windows on Node.js 22, 24, and 26.
 
 ### Scope boundaries
 
 - No project detection, install planning, dry-run preview, filesystem writes, manifest storage, or CLI installation command is included.
 - No Git mutation command is invoked.
 - The final target component is rejected if it is a symlink; parent path components are canonicalized.
+
+## 2026-11-17 — M2.2 Read-only project detection
+
+**Status: Implemented; local verification pending**
+
+### Implementation
+
+- Added `src/detection/types.ts` for detection records, nested manifest metadata, workspace summary, report, and bounded scan options.
+- Added `src/detection/detect-project.ts` for read-only detection from one explicit root.
+- Recognizes the initial language/ecosystem manifest families in the original specification: JavaScript/TypeScript, Go, Python, Rust, Java/Kotlin, .NET, Ruby, PHP, Elixir, Dart, Swift, and C/C++.
+- Detects selected frameworks from package dependencies, allowlisted manifest declarations, and common root framework config filenames.
+- Detects package-manager hints from lockfiles and explicit `packageManager` metadata.
+- Detects known AI instruction/config paths by existence only. Their contents are not read.
+- Scans the root and a bounded set of directories across at most the first two directory levels. Common generated, dependency, VCS, cache, and vendor directories are skipped. Symlinked files/directories are not followed.
+- Reports evidence paths, confidence, and `detected` status. Nested manifests and recognized workspace markers are reported separately; nested manifests without a marker are classified as ambiguous.
+- Extended `projectConfigSchema` detection metadata with `agentConfigs`, keeping detected facts separate from confirmed project fields.
+- Added detection tests for JavaScript/TypeScript, framework/package-manager evidence, agent instructions, nested manifests, workspace ambiguity, symlinks, ignored directories, bounded scanning, malformed manifests, read-only behavior, and non-execution of scripts.
+
+### Safety and scope boundaries
+
+- No project commands, package scripts, lifecycle scripts, or inferred build/test/lint/dev commands are executed.
+- No `.env`, credential, or known secret/config files are scanned as project manifests.
+- README and docs are identified by path only; their contents are not read.
+- No project files or configuration are written or modified.
+- Detection records remain `detected`; this milestone does not confirm or persist project decisions.
+- This is bounded discovery, not a recursive repository index. Nested project boundaries can remain ambiguous and must be confirmed by the user.
+
+### Verification
+
+- **Assistant-side smoke check:** transpiled the detector and exercised a temporary JavaScript/TypeScript workspace. It returned the expected languages, Next.js/React framework evidence, pnpm package manager, AGENTS.md presence, and nested workspace manifest.
+- Full project `pnpm typecheck`, Vitest suite, build, and hosted CI have not yet been run against this patch. User verification is pending.
 
 ---
 
@@ -183,7 +203,8 @@ The template test coverage includes core content, template types, index schema/v
 | M1.3 | Template index loader and validator | Done |
 | M1.4 | Safe placeholder renderer | Done |
 | M1.5 | Template validation tests | Done |
-| M2.1 | Target path and Git-state inspection | Implemented; local verification passed; cross-platform CI correction pending |
+| M2.1 | Target path and Git-state inspection | Done; local verification and 9/9 hosted CI jobs passed |
+| M2.2 | Read-only project detection | Implemented; local verification pending |
 
 There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is template validation tests.
 
@@ -191,7 +212,6 @@ There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is
 
 The following remain intentionally unimplemented:
 
-- Read-only project detection (M2.2).
 - Installation planning and conflict classification (M2.3).
 - Dry-run preview (M2.4).
 - Atomic filesystem transaction (M2.5).

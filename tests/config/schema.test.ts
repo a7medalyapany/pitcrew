@@ -18,13 +18,8 @@ describe("project config schema", () => {
       ...validConfig,
       project: { name: "Example", summary: "A confirmed project summary" },
       detection: {
-        languages: [{
-          value: "TypeScript",
-          kind: "language",
-          confidence: "high",
-          evidence: ["package.json", "tsconfig.json"],
-          status: "detected",
-        }],
+        languages: [{ value: "TypeScript", kind: "language", confidence: "high", evidence: ["package.json", "tsconfig.json"], status: "detected" }],
+        agentConfigs: [{ value: "AGENTS.md instructions", kind: "agentConfig", confidence: "high", evidence: ["AGENTS.md"], status: "detected" }],
       },
       commands: { test: "pnpm test" },
       repository: { kind: "single", root: "." },
@@ -32,6 +27,7 @@ describe("project config schema", () => {
     });
 
     expect(result.detection?.languages?.[0]?.status).toBe("detected");
+    expect(result.detection?.agentConfigs?.[0]?.status).toBe("detected");
     expect(result.project?.name).toBe("Example");
   });
 
@@ -51,9 +47,7 @@ describe("project config schema", () => {
     (path) => {
       const result = projectConfigSchema.safeParse({
         ...validConfig,
-        detection: {
-          languages: [{ value: "Go", kind: "language", confidence: "high", evidence: [path], status: "detected" }],
-        },
+        detection: { languages: [{ value: "Go", kind: "language", confidence: "high", evidence: [path], status: "detected" }] },
       });
       expect(result.success).toBe(false);
     },

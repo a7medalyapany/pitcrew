@@ -4,9 +4,9 @@ Pitcrew is a local-first, adapter-based CLI for installing and maintaining a por
 
 ## Project status
 
-Pitcrew is in early development. The repository contains the CLI foundation, universal workflow content, profile definitions, template-index validation/loading, a pure template renderer, runtime configuration and manifest schemas, the shared adapter contract, and read-only target path/Git-state inspection.
+Pitcrew is in early development. The repository contains the CLI foundation, universal workflow content, profile definitions, template-index validation/loading, a pure template renderer, runtime configuration and manifest schemas, the shared adapter contract, read-only target path/Git-state inspection, and read-only project detection.
 
-The installation path is not implemented yet. Project detection, install planning, dry-run preview, filesystem transactions, ownership tracking, concrete adapter generators, update, and uninstall remain future work. Do not use the current package as an installer for real projects.
+The installation path is not implemented yet. Install planning, conflict classification, dry-run preview, filesystem transactions, ownership tracking, concrete adapter generators, update, and uninstall remain future work. Do not use the current package as an installer for real projects.
 
 ## Design principles
 
@@ -36,8 +36,10 @@ pnpm build
 
 ## Architecture boundaries
 
-- Target resolution and Git-state inspection are read-only.
+- Target resolution, Git-state inspection, and project detection are read-only.
 - Git inspection uses fixed subprocess arguments without a shell; it does not mutate repository state.
+- Project detection inspects bounded manifest/configuration paths, never executes project scripts, and returns evidence rather than confirmed project decisions.
+- Detection reports do not include manifest contents, environment values, or secret values.
 - Template validation and rendering are separate from installation planning.
 - The renderer is pure and does not access the filesystem.
 - Adapters propose file operations and diagnostics; they do not write files or execute commands.
@@ -48,7 +50,7 @@ pnpm build
 ## Repository layout
 
 ```text
-src/       CLI, adapters, inspection, schemas, profiles, and template engine
+src/       CLI, adapters, detection, inspection, schemas, profiles, and template engine
  tests/    Unit and contract tests
  docs/     Architecture and implementation tracking
  fixtures/ Local test/reference projects

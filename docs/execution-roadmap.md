@@ -6,7 +6,7 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 
 ## Current position
 
-**Milestones M0 and M1 are complete. M2.1 implementation and local verification are complete; hosted CI has exposed cross-platform test expectations that are being corrected.** The hosted M0.4 matrix has been observed green on Linux, macOS, and Windows across Node.js 22, 24, and 26.
+**Milestones M0 and M1 are complete. M2.1 is complete and verified locally and in hosted CI. M2.2 is implemented and awaits local verification.** GitHub Actions run `44001430639` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs.
 
 | Milestone | Original scope | Status | Notes |
 | --- | --- | --- | --- |
@@ -19,7 +19,8 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 | M1.3 | Implement template index loader and validator | Done | Strict runtime validation, catalog consistency, safe paths/sources, and immutable validated index. |
 | M1.4 | Implement safe placeholder renderer | Done | Pure renderer supports approved placeholders, profile/adapter/platform filtering, directory expansion, deterministic output, and structured failures. |
 | M1.5 | Add template validation tests | Done | Content, index loader/validator, source validator, and renderer tests exist. User reported 12 test files and 86 tests passing. |
-| M2.1 | Implement target path and Git-state inspection | Implemented; local verification passed; hosted CI fix pending | User reported typecheck, 15 test files/98 tests, and build passing on Node 24. GitHub Actions run `44000618418` exposed five test failures on macOS and Windows caused by comparing canonical paths to temporary-directory aliases. |
+| M2.1 | Implement target path and Git-state inspection | Done | User reported typecheck, 15 test files/98 tests, and build passing. Hosted CI run `44001430639` passed all 9 matrix jobs after correcting canonical-path test expectations. |
+| M2.2 | Implement read-only project detection | Implemented; local verification pending | Bounded manifest/config discovery, evidence/confidence records, framework/package-manager hints, agent-config detection, and monorepo ambiguity reporting are implemented. No commands are executed and no project files are changed. |
 
 There is no M1.6 in the original specification. The renderer is M1.4, and template validation tests are M1.5.
 
@@ -35,11 +36,26 @@ The M2.1 inspection layer:
 6. Uses bounded Git subprocess execution, disables optional Git index writes, bypasses configured fsmonitor, and removes inherited Git repository override variables so inspection applies to the selected target.
 7. Returns typed results and structured operational errors.
 
-M2.1 does not implement project detection, install-plan construction, dry-run output, filesystem transactions, manifest writing, or CLI installation commands. Those remain in later original M2 milestones.
+## M2.2 implementation boundary
 
-## Next milestone: M2.2
+The M2.2 detector:
 
-Implement **read-only project detection** only after the M2.1 cross-platform CI matrix is green. Detection must inspect only explicitly bounded project paths, collect evidence and confidence, keep detected values separate from confirmed configuration, avoid secret contents, and never execute project scripts or modify the target.
+1. Accepts one explicit existing project root and rejects a final-component symlink.
+2. Inspects allowlisted root manifests and a bounded set of directories across at most the first two directory levels. It does not recursively crawl the repository.
+3. Skips common generated, dependency, vendor, VCS, cache, and build directories; symlinked directories/files are not followed.
+4. Recognizes the initial ecosystems listed in the original specification: JavaScript/TypeScript, Go, Python, Rust, Java/Kotlin, .NET, Ruby, PHP, Elixir, Dart, Swift, and C/C++.
+5. Detects selected frameworks from manifest dependency declarations and common root config filenames. Package-manager hints come from lockfiles and explicit package-manager markers.
+6. Detects known AI instruction/config paths by existence only; it does not read their contents.
+7. Reports evidence paths, confidence, and `detected` status. Detection is never promoted to confirmed configuration.
+8. Reports nested manifests and workspace markers. Nested manifests without a workspace marker are classified as ambiguous; no package boundaries are inferred from directory names alone.
+9. Reads only bounded allowlisted manifest files when needed for structured metadata. It does not inspect environment files, credential files, or inferred command scripts, and it never executes project commands.
+10. Returns a report only. It does not write config, modify project files, or choose build/test/lint/dev commands.
+
+The detector currently performs bounded shallow discovery, not a full repository index. The report is advisory and may contain false positives/negatives; the user must confirm project facts and commands later.
+
+## Next milestone: M2.3
+
+Implement the install plan and conflict classifier from the original specification. It must consume the validated template index, rendered outputs, target inspection, and existing-project snapshot; classify create/merge/skip/conflict actions; and remain read-only. It must not write files or decide approvals. The filesystem transaction layer remains the only layer allowed to apply an approved plan.
 
 ## Non-negotiable implementation boundaries
 
