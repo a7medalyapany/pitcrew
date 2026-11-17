@@ -243,14 +243,13 @@ The template test coverage includes core content, template types, index schema/v
 ### Verification
 
 - **Local verification — user-reported on 2026-11-17:** `pnpm typecheck` passed; `pnpm test` passed with 18 test files and 126 tests; `pnpm build` passed.
-- **Hosted CI:** the user reported CI passed. The exact run ID and commit have not been independently recorded in this log.
-
+- **Hosted CI — observed on GitHub Actions, 2026-11-17:** run `44183011936`, commit `0a4524860450e61c1f2afbdb2dc77830f356229c`, completed successfully with all 9 matrix jobs passing across Ubuntu, macOS, and Windows on Node.js 22, 24, and 26.
 
 ---
 
 ## 2026-11-17 — M2.5 Atomic filesystem transaction
 
-**Status: Implemented; local verification passed; hosted CI pending**
+**Status: Done**
 
 ### Implementation
 
@@ -283,22 +282,22 @@ The template test coverage includes core content, template types, index schema/v
 
 ## Original roadmap status
 
-| Milestone | Original scope | Status |
-| --- | --- | --- |
-| M0.1 | Repository foundation | Done |
-| M0.2 | Config, manifest, and template-index schemas | Done |
-| M0.3 | Adapter interface and capability vocabulary | Done |
-| M0.4 | Linux/macOS/Windows CI matrix | Done; 9/9 hosted jobs passed |
-| M1.1 | Universal workflow documents | Done |
-| M1.2 | Workflow profiles | Done |
-| M1.3 | Template index loader and validator | Done |
-| M1.4 | Safe placeholder renderer | Done |
-| M1.5 | Template validation tests | Done |
-| M2.1 | Target path and Git-state inspection | Done; local verification and 9/9 hosted CI jobs passed |
-| M2.2 | Read-only project detection | Done; local verification and 9/9 hosted CI jobs passed |
-| M2.3 | Install plan and conflict classifier | Done; local verification and 9/9 hosted CI jobs passed |
-| M2.4 | Dry-run preview | Done; local verification passed (18 files/126 tests) |
-| M2.5 | Atomic filesystem transaction | Implemented; local verification passed (19 files/134 tests); hosted CI pending |
+| Milestone | Original scope                               | Status                                                                            |
+| --------- | -------------------------------------------- | --------------------------------------------------------------------------------- |
+| M0.1      | Repository foundation                        | Done                                                                              |
+| M0.2      | Config, manifest, and template-index schemas | Done                                                                              |
+| M0.3      | Adapter interface and capability vocabulary  | Done                                                                              |
+| M0.4      | Linux/macOS/Windows CI matrix                | Done; 9/9 hosted jobs passed                                                      |
+| M1.1      | Universal workflow documents                 | Done                                                                              |
+| M1.2      | Workflow profiles                            | Done                                                                              |
+| M1.3      | Template index loader and validator          | Done                                                                              |
+| M1.4      | Safe placeholder renderer                    | Done                                                                              |
+| M1.5      | Template validation tests                    | Done                                                                              |
+| M2.1      | Target path and Git-state inspection         | Done; local verification and 9/9 hosted CI jobs passed                            |
+| M2.2      | Read-only project detection                  | Done; local verification and 9/9 hosted CI jobs passed                            |
+| M2.3      | Install plan and conflict classifier         | Done; local verification and 9/9 hosted CI jobs passed                            |
+| M2.4      | Dry-run preview                              | Done; local verification passed (18 files/126 tests)                              |
+| M2.5      | Atomic filesystem transaction                | Done; local verification passed (19 files/134 tests); hosted CI passed (9/9 jobs) |
 
 There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is template validation tests.
 
