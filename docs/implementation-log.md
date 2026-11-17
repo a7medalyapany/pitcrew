@@ -276,9 +276,37 @@ The template test coverage includes core content, template types, index schema/v
 ### Verification
 
 - **Local verification — user-reported on 2026-11-17 after the preflight fix:** `pnpm typecheck` passed; `pnpm test` passed with 19 test files and 134 tests; `pnpm build` passed.
-- **Hosted CI:** pending; no run ID or commit has been recorded here.
+- **Hosted CI — observed on GitHub Actions, 2026-11-17:** run `44183011936`, commit `0a4524860450e61c1f2afbdb2dc77830f356229c`, completed successfully with all 9 matrix jobs passing across Ubuntu, macOS, and Windows on Node.js 22, 24, and 26.
 
 ---
+
+## 2026-11-17 — M2.6 Installation manifest and baseline storage
+
+**Status: Implementation prepared; local verification pending**
+
+### Implementation
+
+- Refined `src/installation/manifest/schema.ts` so managed files require a canonical baseline path and baseline hash, while shared-entrypoint and user-config records cannot claim a baseline.
+- Added `src/installation/manifest/storage.ts` for validated, bounded, read-only manifest and baseline loading, plus pure installation-artifact preparation.
+- Added `src/installation/manifest/index.ts` as the public module entry point.
+- Manifest preparation records installed destinations, source template paths, installed hashes, ownership classifications, optional transaction backup paths, created directories, and explicitly supplied skipped-conflict decisions.
+- Managed baseline bytes are copied from the exact rendered content and verified by SHA-256. Shared-entrypoint and user-config files receive no baseline. User-owned files are rejected as install records.
+- Manifest and baseline files are added as explicit create-file operations to the same immutable plan. Artifact preparation requires the exact snapshot fingerprint associated with the plan. Their content is returned to the caller for the M2.5 transaction; the preparation and read APIs do not write files.
+- Readers reject non-canonical roots, symlinked metadata paths, non-regular files, oversized files, invalid JSON/schema data, unsafe baseline paths, and baseline hash mismatches.
+- Added schema and storage tests for managed-only baselines, metadata collisions, malformed/oversized manifests, symlink paths, hash mismatches, and deterministic plan augmentation.
+
+### Safety and scope boundaries
+
+- This is a pure preparation/read boundary. `applyInstallPlan()` remains the only filesystem mutation primitive.
+- The artifact builder prepares an initial installation. Replacing an existing manifest and updating an existing installation are not implemented here; M2.7 must detect an existing manifest and must not treat it as a fresh install.
+- A transaction ID should be supplied when preparing managed-update backup paths. M2.7 owns that orchestration.
+- Manifest and baseline reads use bounded `lstat` checks followed by reads. The existing narrow concurrent-filesystem TOCTOU limitation remains; this milestone does not claim safety against a hostile process concurrently swapping path components.
+- No `init` command, interactive approval flow, adapter generation, update command, or uninstall command is included.
+
+### Verification
+
+- **Local verification:** pending user execution of `pnpm typecheck`, `pnpm test`, and `pnpm build`.
+- **Hosted CI:** pending; no run ID or commit is claimed.
 
 ## Original roadmap status
 
@@ -298,6 +326,7 @@ The template test coverage includes core content, template types, index schema/v
 | M2.3      | Install plan and conflict classifier         | Done; local verification and 9/9 hosted CI jobs passed                            |
 | M2.4      | Dry-run preview                              | Done; local verification passed (18 files/126 tests)                              |
 | M2.5      | Atomic filesystem transaction                | Done; local verification passed (19 files/134 tests); hosted CI passed (9/9 jobs) |
+| M2.6      | Installation manifest and baseline storage   | Implementation prepared; local and hosted verification pending |
 
 There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is template validation tests.
 
@@ -305,7 +334,6 @@ There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is
 
 The following remain intentionally unimplemented:
 
-- Installation manifest/baseline storage (M2.6).
 - `init` command (M2.7).
 - Concrete adapter generators and later lifecycle commands.
 - Update and uninstall behavior.

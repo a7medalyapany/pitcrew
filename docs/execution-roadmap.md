@@ -6,7 +6,7 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 
 ## Current position
 
-**Milestones M0, M1, and M2.1–M2.5 are complete.** M2.4 local verification was reported on 2026-11-17: typecheck passed, 18 test files/126 tests passed, and build passed. M2.5 local verification was reported on 2026-11-17: typecheck passed, 19 test files/134 tests passed, and build passed. M2.5 hosted CI run `44183011936` on commit `0a4524860450e61c1f2afbdb2dc77830f356229c` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs.
+**Milestones M0, M1, and M2.1–M2.5 are complete.** M2.4 local verification was reported on 2026-11-17: typecheck passed, 18 test files/126 tests passed, and build passed. M2.5 local verification was reported on 2026-11-17: typecheck passed, 19 test files/134 tests passed, and build passed. M2.5 hosted CI run `44183011936` on commit `0a4524860450e61c1f2afbdb2dc77830f356229c` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs. M2.6 implementation is prepared for local verification; no local or hosted verification is claimed yet.
 
 | Milestone | Original scope                                      | Status | Notes                                                                                                                                                                                                                           |
 | --------- | --------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -24,6 +24,7 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 | M2.3      | Implement install plan and conflict classifier      | Done   | User reported typecheck, 17 test files/120 tests, and build passing. Hosted CI run `44167670823` passed all 9 matrix jobs.                                                                                                      |
 | M2.4      | Implement dry-run preview                           | Done   | Pure preview model and deterministic text/JSON formatter. User-reported local verification: 18 test files/126 tests, typecheck, and build passed.                                                                               |
 | M2.5      | Implement atomic filesystem transaction             | Done   | Explicit path-specific approvals, preflight/revalidation, atomic writes, backups, transaction journal, and rollback. Local verification passed (19 test files/134 tests); hosted CI run `44183011936` passed all 9 matrix jobs. |
+| M2.6      | Implement installation manifest and baseline storage | Implemented; verification pending | Validated manifest reads, managed-only baseline storage, and pure preparation of manifest/baseline operations for the M2.5 transaction. Local and hosted verification are pending. |
 
 There is no M1.6 in the original specification. The renderer is M1.4, and template validation tests are M1.5.
 
@@ -101,11 +102,25 @@ The M2.5 transaction layer:
 7. Attempts reverse-order rollback after failure, removes created files only when their content still matches the transaction output, restores backups only when safe, and retains recovery evidence when rollback is incomplete.
 8. Uses no shell, Git mutation, network, template script execution, dependency installation, recursive deletion, or CLI command integration.
 
-The transaction primitive is not yet a usable installer. M2.6 must add installation manifest and baseline storage, and M2.7 must provide the `init` orchestration. A narrow concurrent-filesystem race remains between path validation and filesystem operations; this layer must not be presented as production-safe against a hostile concurrent process until that risk is addressed.
+The transaction primitive is not yet a usable installer. M2.6 adds installation manifest and baseline storage, and M2.7 must provide the `init` orchestration. A narrow concurrent-filesystem race remains between path validation and filesystem operations; this layer must not be presented as production-safe against a hostile concurrent process until that risk is addressed.
 
-## Next milestone: M2.6
+## M2.6 implementation boundary
 
-Implement installation manifest and baseline storage from the original specification. It must record ownership and installed baselines needed for safe future update/uninstall behavior, integrate with the transaction boundary without allowing adapters or planners to write, and preserve user modifications. Do not wire the user-facing `init` command early; that remains M2.7.
+The M2.6 manifest/storage layer:
+
+1. Validates `.agent-workflow/manifest.json` using the existing strict runtime schema and distinguishes an absent manifest from malformed or unsafe state.
+2. Rejects non-canonical roots, symlinked metadata paths, non-regular manifest/baseline files, oversized data, malformed JSON, and invalid manifest records.
+3. Records destination, source template path, installed hash, classification, optional transaction backup path, and managed baseline hash/path. Shared-entrypoint and user-config records do not carry baselines.
+4. Stores baseline copies only for files classified as `managed`; baseline bytes are exactly the rendered bytes whose SHA-256 is recorded in the manifest. User-owned content is never copied into the baseline store.
+5. Verifies baseline bytes against their recorded hash before returning them to a future update operation.
+6. Requires the same snapshot fingerprint used to build the plan, then prepares manifest and baseline files as explicit create-file operations, with all required parent directories, in the same immutable install plan. It returns content for the M2.5 transaction layer and performs no filesystem writes itself.
+7. Rejects collisions with existing manifest/baseline metadata, symlinked ancestors, invalid rendered ownership, and content that differs from the original plan hash.
+
+The artifact-preparation function is intended for the initial-install flow. Existing manifest replacement and lifecycle updates remain future work; M2.7 must detect an existing installation rather than treating it as a fresh install. Supply the transaction ID when preparing update backup paths. The manifest reader and baseline reader are read-only; only the transaction layer writes these artifacts.
+
+## Next milestone: M2.7
+
+Implement the `init` command and orchestration from the original specification. It must connect inspection, detection, rendering, planning, preview, explicit approvals, manifest/baseline artifact preparation, and the atomic transaction without allowing adapters or planners to write. Existing installations must not be mistaken for fresh installs.
 
 ## Non-negotiable implementation boundaries
 
