@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -25,8 +25,9 @@ describe("inspectTarget", () => {
     execFileSync("git", ["add", "README.md"], { cwd: temporaryDirectory, stdio: "ignore" });
     execFileSync("git", ["commit", "--quiet", "-m", "initial"], { cwd: temporaryDirectory, stdio: "ignore" });
 
+    const canonicalRoot = await realpath(temporaryDirectory);
     const result = await inspectTarget(".", { cwd: temporaryDirectory });
-    expect(result.target.canonicalPath).toBe(temporaryDirectory);
-    expect(result.git).toMatchObject({ kind: "repository", rootPath: temporaryDirectory, workingTree: "clean" });
+    expect(result.target.canonicalPath).toBe(canonicalRoot);
+    expect(result.git).toMatchObject({ kind: "repository", rootPath: canonicalRoot, workingTree: "clean" });
   });
 });

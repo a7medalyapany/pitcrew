@@ -128,11 +128,11 @@ Implemented the pure template renderer under `src/templates/renderer/`:
 
 The template test coverage includes core content, template types, index schema/validation, index loading, source validation, and renderer behavior.
 
-**Verification — user-reported on 2026-11-16:** typecheck passed; 12 test files and 86 tests passed; build passed. This is the latest reported local suite before M2.1 changes.
+**Verification — user-reported on 2026-11-16:** typecheck passed; 12 test files and 86 tests passed; build passed.
 
 ## 2026-11-17 — M2.1 Target path and Git-state inspection
 
-**Status: Implemented in the current patch; verification pending**
+**Status: Implementation complete; local verification passed; cross-platform CI correction in progress**
 
 ### Implementation
 
@@ -144,7 +144,7 @@ The template test coverage includes core content, template types, index schema/v
 - Git state distinguishes no repository, Git unavailable, and a repository with clean/dirty status. Dirty status is reported as information and does not block inspection.
 - Added temporary-directory tests for target validation, symlinks, non-Git directories, clean repositories, nested targets, staged/unstaged/untracked changes, unavailable Git, and the combined inspection result.
 
-### Files added
+### Files added by the M2.1 implementation
 
 - `src/inspection/errors.ts`
 - `src/inspection/target-path.ts`
@@ -154,12 +154,19 @@ The template test coverage includes core content, template types, index schema/v
 - `tests/inspection/git-state.test.ts`
 - `tests/inspection/inspect-target.test.ts`
 
-### Boundaries and outstanding verification
+### Verification and cross-platform correction
+
+- **Local verification — user-reported on 2026-11-17:** `pnpm typecheck` passed; `pnpm test` passed with 15 test files and 98 tests; `pnpm build` passed.
+- **Hosted CI — observed:** run `44000618418` started against commit `3dcc5212883cd38940a9911283c67d1a0d660a75`. Ubuntu Node 22/24/26 jobs passed typecheck and tests at the time of inspection. macOS Node 22/24/26 and Windows Node 22/24/26 jobs failed five assertions across the three inspection test files; the three Ubuntu jobs passed.
+- The failures are caused by tests assuming the temporary-directory spelling is identical to its canonical path. macOS resolves `/var/folders/...` to `/private/var/folders/...`; Windows may resolve a short-name path such as `C:\Users\RUNNER~1\...` to its long-name form such as `C:\Users\runneradmin\...`. The implementation intentionally returns canonical paths; tests must compare against `realpath()` rather than assume the temporary-directory spelling is canonical.
+- The correction updates only test expectations to calculate canonical paths with `realpath()`. It does not weaken symlink checks or change runtime behavior.
+- The first hosted run completed with all three Ubuntu jobs passing and the six macOS/Windows jobs failing on the same path-alias assumptions. The corrected test patch has not yet been run through CI.
+
+### Scope boundaries
 
 - No project detection, install planning, dry-run preview, filesystem writes, manifest storage, or CLI installation command is included.
 - No Git mutation command is invoked.
 - The final target component is rejected if it is a symlink; parent path components are canonicalized.
-- Local `pnpm typecheck`, `pnpm test`, and `pnpm build`, plus hosted CI, remain unverified until results are reported/observed after applying this patch.
 
 ---
 
@@ -176,7 +183,7 @@ The template test coverage includes core content, template types, index schema/v
 | M1.3 | Template index loader and validator | Done |
 | M1.4 | Safe placeholder renderer | Done |
 | M1.5 | Template validation tests | Done |
-| M2.1 | Target path and Git-state inspection | Implemented; verification pending |
+| M2.1 | Target path and Git-state inspection | Implemented; local verification passed; cross-platform CI correction pending |
 
 There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is template validation tests.
 

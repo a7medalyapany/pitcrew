@@ -6,7 +6,7 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 
 ## Current position
 
-**Milestones M0 and M1 are complete. M2.1 is implemented in the current patch and awaits local verification and hosted CI.** The hosted M0.4 matrix has been observed green on Linux, macOS, and Windows across Node.js 22, 24, and 26.
+**Milestones M0 and M1 are complete. M2.1 implementation and local verification are complete; hosted CI has exposed cross-platform test expectations that are being corrected.** The hosted M0.4 matrix has been observed green on Linux, macOS, and Windows across Node.js 22, 24, and 26.
 
 | Milestone | Original scope | Status | Notes |
 | --- | --- | --- | --- |
@@ -19,7 +19,7 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 | M1.3 | Implement template index loader and validator | Done | Strict runtime validation, catalog consistency, safe paths/sources, and immutable validated index. |
 | M1.4 | Implement safe placeholder renderer | Done | Pure renderer supports approved placeholders, profile/adapter/platform filtering, directory expansion, deterministic output, and structured failures. |
 | M1.5 | Add template validation tests | Done | Content, index loader/validator, source validator, and renderer tests exist. User reported 12 test files and 86 tests passing. |
-| M2.1 | Implement target path and Git-state inspection | Implemented, verification pending | Read-only target canonicalization and Git inspection are added. Local typecheck/tests/build and hosted CI must be confirmed before marking Done. |
+| M2.1 | Implement target path and Git-state inspection | Implemented; local verification passed; hosted CI fix pending | User reported typecheck, 15 test files/98 tests, and build passing on Node 24. GitHub Actions run `44000618418` exposed five test failures on macOS and Windows caused by comparing canonical paths to temporary-directory aliases. |
 
 There is no M1.6 in the original specification. The renderer is M1.4, and template validation tests are M1.5.
 
@@ -32,14 +32,14 @@ The M2.1 inspection layer:
 3. Uses Git's fixed `rev-parse`, `status --porcelain`, and `symbolic-ref` operations without a shell.
 4. Reports non-repository and Git-unavailable states separately from a repository with a clean or dirty working tree.
 5. Summarizes staged, unstaged, untracked, and conflicted paths. A dirty tree is reported, not blocked.
-6. Uses bounded Git subprocess execution, disables optional Git index writes, bypasses configured fsmonitor, and removes inherited repository override variables so inspection applies to the selected target.
+6. Uses bounded Git subprocess execution, disables optional Git index writes, bypasses configured fsmonitor, and removes inherited Git repository override variables so inspection applies to the selected target.
 7. Returns typed results and structured operational errors.
 
 M2.1 does not implement project detection, install-plan construction, dry-run output, filesystem transactions, manifest writing, or CLI installation commands. Those remain in later original M2 milestones.
 
 ## Next milestone: M2.2
 
-Implement **read-only project detection** after M2.1 is verified. Detection must inspect only explicitly bounded project paths, collect evidence and confidence, keep detected values separate from confirmed configuration, avoid secret contents, and never execute project scripts or modify the target.
+Implement **read-only project detection** only after the M2.1 cross-platform CI matrix is green. Detection must inspect only explicitly bounded project paths, collect evidence and confidence, keep detected values separate from confirmed configuration, avoid secret contents, and never execute project scripts or modify the target.
 
 ## Non-negotiable implementation boundaries
 

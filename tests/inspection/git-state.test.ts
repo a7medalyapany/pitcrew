@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -45,7 +45,7 @@ describe("inspectGitState", () => {
 
     await expect(inspectGitState(root)).resolves.toMatchObject({
       kind: "repository",
-      rootPath: root,
+      rootPath: await realpath(root),
       branch: expect.any(String),
       workingTree: "clean",
       changes: { total: 0, staged: 0, unstaged: 0, untracked: 0, conflicted: 0 },
@@ -60,7 +60,7 @@ describe("inspectGitState", () => {
 
     await expect(inspectGitState(nested)).resolves.toMatchObject({
       kind: "repository",
-      rootPath: root,
+      rootPath: await realpath(root),
       workingTree: "clean",
     });
   });
