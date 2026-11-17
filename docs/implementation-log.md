@@ -282,7 +282,7 @@ The template test coverage includes core content, template types, index schema/v
 
 ## 2026-11-17 — M2.6 Installation manifest and baseline storage
 
-**Status: Implementation prepared; local verification pending**
+**Status: Done**
 
 ### Implementation
 
@@ -302,6 +302,37 @@ The template test coverage includes core content, template types, index schema/v
 - A transaction ID should be supplied when preparing managed-update backup paths. M2.7 owns that orchestration.
 - Manifest and baseline reads use bounded `lstat` checks followed by reads. The existing narrow concurrent-filesystem TOCTOU limitation remains; this milestone does not claim safety against a hostile process concurrently swapping path components.
 - No `init` command, interactive approval flow, adapter generation, update command, or uninstall command is included.
+
+### Verification
+
+- **Local verification — user-reported on 2026-11-17:** `pnpm typecheck` passed; `pnpm test` passed with 21 test files and 155 tests; `pnpm build` passed.
+- **Hosted CI — observed on GitHub Actions, 2026-11-17:** run `44190732268`, commit `37e40e8347ad035c06136b39d40981dd001a6112`, completed successfully with all 9 matrix jobs passing across Ubuntu, macOS, and Windows on Node.js 22, 24, and 26.
+
+
+## 2026-11-17 — M2.7 `init` command orchestration
+
+**Status: Implementation prepared; local verification and hosted CI pending**
+
+### Implementation
+
+- Added `pitcrew init [target]` with profile, adapter, project-name, summary, dry-run, JSON, and repeated exact-path approval options.
+- Added the bundled core template catalog and versioned index. The command validates the bundled source tree before loading and rendering it.
+- Added a bounded, read-only project snapshot collector. It records regular-file hashes, directories, symlinks, and unsupported/oversized entries without following symlinks or executing project scripts.
+- Connected target inspection, project detection, template rendering, install planning, preview formatting, and manifest/baseline preparation. Detected facts are persisted as `detected`, never silently promoted to confirmed project facts.
+- Generated `.agent-workflow/config.json` from validated schema data and records the bundled template source in the manifest.
+- Requires a repeated `--approve <exact-path>` for every file destination, including generated config, manifest, and managed baseline files. Without approvals, `init` is preview-only; `--dry-run` never writes.
+- Conflict and manual-action operations are excluded from the apply plan while being recorded as preserved/skipped decisions in the manifest. Existing files are not merged or overwritten.
+- Detects a valid existing Pitcrew manifest and refuses to treat the project as a fresh installation. Update behavior remains a later lifecycle milestone.
+- Added a build-time asset copy step so bundled template files are available to the compiled CLI.
+
+### Safety and scope boundaries
+
+- Adapters, detection, rendering, planning, preview, and manifest preparation remain read-only. `applyInstallPlan()` remains the only project filesystem mutation layer.
+- No project scripts, package managers, dependencies, Git mutations, network access, telemetry, secrets, hooks, permissions, or MCP endpoints are invoked or installed.
+- Existing root instruction entrypoints and user configuration require manual integration; their contents are preserved.
+- Native Claude/Codex/OpenCode files are not generated in this milestone. The command installs the shared core workflow only.
+- The filesystem transaction layer still has the previously documented narrow concurrent path-swap TOCTOU limitation.
+- Interactive prompts and non-interactive required-field validation remain M5.2 work.
 
 ### Verification
 
@@ -326,7 +357,8 @@ The template test coverage includes core content, template types, index schema/v
 | M2.3      | Install plan and conflict classifier         | Done; local verification and 9/9 hosted CI jobs passed                            |
 | M2.4      | Dry-run preview                              | Done; local verification passed (18 files/126 tests)                              |
 | M2.5      | Atomic filesystem transaction                | Done; local verification passed (19 files/134 tests); hosted CI passed (9/9 jobs) |
-| M2.6      | Installation manifest and baseline storage   | Implementation prepared; local and hosted verification pending |
+| M2.6      | Installation manifest and baseline storage   | Done; local verification passed (21 files/155 tests); hosted CI passed (9/9 jobs) |
+| M2.7      | `init` command                              | Implementation prepared; local and hosted verification pending |
 
 There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is template validation tests.
 
@@ -334,7 +366,7 @@ There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is
 
 The following remain intentionally unimplemented:
 
-- `init` command (M2.7).
+- Local/hosted verification of the M2.7 `init` orchestration patch.
 - Concrete adapter generators and later lifecycle commands.
 - Update and uninstall behavior.
 - Adapter-specific destination variants in the template index.

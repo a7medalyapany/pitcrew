@@ -5,31 +5,18 @@
   "description": "A safe, adapter-based installer for AI coding workflows.",
   "license": "MIT",
   "type": "module",
-  "bin": {
-    "pitcrew": "./dist/cli.js"
-  },
-  "files": [
-    "dist",
-    "templates",
-    "schemas",
-    "README.md",
-    "LICENSE"
-  ],
-  "engines": {
-    "node": ">=22.23.0"
-  },
+  "bin": { "pitcrew": "./dist/cli.js" },
+  "files": ["dist", "templates", "schemas", "README.md", "LICENSE"],
+  "engines": { "node": ">=22.23.0" },
   "packageManager": "pnpm@10.0.0",
   "scripts": {
     "dev": "tsx src/cli.ts",
-    "build": "tsup src/cli.ts --format esm --target node22 --clean",
+    "build": "tsup src/cli.ts --format esm --target node22 --clean && node scripts/copy-templates.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "dependencies": {
-    "commander": "^14.0.0",
-    "zod": "^4.1.0"
-  },
+  "dependencies": { "commander": "^14.0.0", "zod": "^4.1.0" },
   "devDependencies": {
     "@types/node": "^22.19.0",
     "tsup": "^8.5.0",

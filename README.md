@@ -4,9 +4,7 @@ Pitcrew is a local-first, adapter-based CLI for installing and maintaining a por
 
 ## Project status
 
-Pitcrew is in early development. The repository contains the CLI foundation, universal workflow content, profile definitions, template-index validation/loading, a pure template renderer, runtime configuration and manifest schemas, the shared adapter contract, read-only target inspection and project detection, a read-only install planner, a dry-run preview formatter, and an isolated atomic filesystem transaction primitive.
-
-The transaction primitive is not yet exposed as a usable installer. Installation manifest/baseline preparation and validated read support are implemented but still require local/hosted verification and `init` orchestration. Concrete adapter generators and the `init` command remain future work. Do not use the current package as a general-purpose installer for real projects.
+Pitcrew is in early development. The repository now includes an initial `init` flow for the shared core workflow: bounded read-only project detection and snapshotting, template validation/rendering, conflict-aware planning, dry-run previews, explicit path approvals, manifest/baseline preparation, and atomic transaction application. M2.7 implementation is prepared and awaiting local verification and hosted CI. Native tool-specific adapter generators and the later lifecycle commands remain future work. Review every preview and approve each exact file destination before applying; existing user content is preserved.
 
 ## Design principles
 
@@ -40,10 +38,10 @@ pnpm build
 - The planner consumes explicit rendered outputs, target inspection, a project snapshot, and optional validated ownership metadata. It returns immutable proposed operations, conflicts, and manual actions.
 - The preview consumes an install plan and produces deterministic text or JSON. It never grants approval.
 - The manifest/storage layer validates existing installation metadata, verifies managed baseline hashes, and prepares manifest/baseline files as explicit operations in the install plan. It never writes files; only the transaction layer applies the approved plan.
-- `applyInstallPlan()` is the only current filesystem mutation primitive. It requires a path-specific approval for every file create/update, verifies rendered content hashes, rejects conflicts/manual actions, and revalidates destination preconditions before the first write.
+- `applyInstallPlan()` is the only filesystem mutation primitive. The `init` orchestrator filters unresolved conflict/manual-action operations into a safe apply plan, while preserving those decisions in the installation manifest. The transaction requires exact destination approvals for every file create/update, verifies rendered content hashes, and revalidates destination preconditions.
 - File updates are backed up under `.agent-workflow/transactions/`; temporary files are created beside their destination before rename. Transaction journals record applying, committed, or incomplete rollback state.
 - On failure, the transaction attempts a conservative rollback and refuses to overwrite files whose contents changed after the transaction wrote them. Backups and journals are retained after success for later manifest/recovery integration.
-- The transaction primitive is not wired to the CLI. M2.7 `init` orchestration remains a prerequisite for a user-facing install flow. Manifest/baseline preparation is implemented but not yet locally or remotely verified.
+- `pitcrew init [target]` is wired to the shared core workflow. Without approvals it is preview-only; `--dry-run` guarantees no writes. Use repeated `--approve <exact-path>` flags to authorize every file destination shown by the preview. Native adapter-specific files remain deferred to M3.
 - Existing `AGENTS.md` and `CLAUDE.md` entrypoints are preserved; the planner proposes manual integration rather than appending or replacing content.
 - Adapters and detectors produce data/proposals only; the transaction layer alone applies approved plans.
 - Template-provided scripts are never executed automatically.
@@ -61,3 +59,12 @@ src/       CLI, adapters, detection, inspection, planning, schemas, profiles, an
 ## Development roadmap
 
 See [`docs/execution-roadmap.md`](docs/execution-roadmap.md) for milestone status and the next implementation steps.
+
+## Initial installation
+
+```bash
+# Inspect the proposed changes without writing anything
+pnpm dev -- init . --dry-run
+```
+
+The preview prints the exact repeated `--approve <path>` flags required for that project. Copy every one into the next `init` invocation, including generated configuration, manifest, and managed baseline files. Existing `AGENTS.md`/`CLAUDE.md` entrypoints and user configuration are never merged or overwritten automatically. An existing Pitcrew manifest causes `init` to stop; lifecycle updates are a separate milestone.
