@@ -103,11 +103,11 @@ const adapters: readonly AdapterDefinition[] = [
     capabilities: {
       rootInstructions: {
         targetSupport: "supported",
-        integration: { status: "notImplemented" },
+        integration: { status: "shared" },
       },
       skills: {
         targetSupport: "supported",
-        integration: { status: "notImplemented" },
+        integration: { status: "native" },
       },
       subagents: {
         targetSupport: "supported",

@@ -2,9 +2,11 @@ import type { Adapter } from "./contract.js";
 import type { AdapterId } from "./types.js";
 import { genericAdapter } from "./generic.js";
 import { codexAdapter } from "./codex.js";
+import { opencodeAdapter } from "./opencode.js";
 
 const runtimeAdapters: Readonly<Partial<Record<AdapterId, Adapter>>> = Object.freeze({
   codex: codexAdapter,
+  opencode: opencodeAdapter,
   generic: genericAdapter,
 });
 

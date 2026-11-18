@@ -154,6 +154,31 @@ describe("Codex adapter", () => {
     ]));
   });
 
+  it("does not validate skills excluded by the selected profile", () => {
+    const input = makeSkillInput();
+    const renderInput = {
+      ...input.renderInput,
+      profile: "minimal" as const,
+      index: {
+        ...input.renderInput.index,
+        entries: input.renderInput.index.entries.map((entry) => ({ ...entry, minimumProfile: "standard" as const })),
+      },
+    };
+    expect(codexAdapter.render(renderInput).files).toEqual([]);
+  });
+
+  it("does not validate skills excluded by the selected platform", () => {
+    const input = makeSkillInput();
+    const renderInput = {
+      ...input.renderInput,
+      index: {
+        ...input.renderInput.index,
+        entries: input.renderInput.index.entries.map((entry) => ({ ...entry, platforms: ["windows"] as const })),
+      },
+    };
+    expect(codexAdapter.render(renderInput).files).toEqual([]);
+  });
+
   it("requires a SKILL.md manifest with name and description frontmatter", () => {
     const input = makeSkillInput();
     const broken = {

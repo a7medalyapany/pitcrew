@@ -55,10 +55,13 @@ describe("adapter registry", () => {
     for (const adapter of listAdapters()) {
       for (const [capabilityId, capability] of Object.entries(adapter.capabilities)) {
         if (adapter.id === "generic" && capabilityId === "rootInstructions") continue;
-        if (adapter.id === "codex" && (capabilityId === "rootInstructions" || capabilityId === "skills")) continue;
+        if ((adapter.id === "codex" || adapter.id === "opencode") && (capabilityId === "rootInstructions" || capabilityId === "skills")) continue;
         expect(capability.integration.status).toBe("notImplemented");
       }
     }
+    const opencode = getAdapter("opencode")!;
+    expect(opencode.capabilities.rootInstructions.integration.status).toBe("shared");
+    expect(opencode.capabilities.skills.integration.status).toBe("native");
   });
 
   it("keeps unverified capabilities unknown", () => {

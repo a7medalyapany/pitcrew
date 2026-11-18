@@ -119,10 +119,14 @@ export const codexAdapter: Adapter = Object.freeze<Adapter>({
     if (!input.adapters.includes("codex")) {
       throw new Error("Codex adapter rendering requires the codex adapter to be selected.");
     }
+    const entriesByAssetId = new Map(input.index.entries.map((entry) => [entry.assetId, entry] as const));
     const eligibleSkills = new Map(
       input.template.assets
         .filter(isCodexSkillAsset)
         .flatMap((asset) => {
+          const entry = entriesByAssetId.get(asset.id);
+          if (!entry || !isProfileAtLeast(input.profile, entry.minimumProfile)) return [];
+          if (entry.platforms && !entry.platforms.includes(input.platform)) return [];
           const name = getSkillName(asset);
           return name ? [[asset.id, { asset, name }] as const] : [];
         }),
