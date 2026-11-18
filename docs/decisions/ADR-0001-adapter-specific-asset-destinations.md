@@ -1,6 +1,6 @@
 # ADR-0001: Adapter-specific asset destinations
 
-- **Status:** Accepted; implementation deferred
+- **Status:** Accepted; Codex runtime mapping implemented, further adapter mappings deferred
 - **Date:** 2026-11-06
 
 ## Context
@@ -18,17 +18,20 @@ The `landing-main` project was reviewed as a reference for workflow design. Its 
 
 1. Keep canonical asset content separate from adapter-specific installation destinations.
 2. Do not treat an asset as adapter-portable merely because its content is tool-agnostic. Installation location and target-tool discovery rules are separate concerns.
-3. Do not add a `nextjs-payload` template or copy the fixture's project-specific assets into Pitcrew's template catalog as part of the current workflow work.
-4. Defer adapter-specific destination support until a real adapter implementation needs it.
-5. When that need is implemented, extend the template index to represent adapter-specific destinations or installation variants while allowing multiple adapters to reuse one canonical source asset.
-6. Do not work around the current schema by duplicating source assets without an explicit canonical-source relationship.
-7. Keep hooks, permission changes, and MCP configuration outside default installation. Their future support requires separate opt-in design, security disclosure, and explicit user approval.
+3. Keep reusable skill content canonical and author it once; adapters own the mapping to each tool's native discovery path. Do not create Claude/Codex/OpenCode copies of the same source content.
+4. Implement deterministic destination mapping in the concrete adapter when the mapping is fixed by the target tool and can be derived safely from the canonical skill directory. Codex maps a canonical `skills/<skill-name>/` directory to `.agents/skills/<skill-name>/`.
+5. Keep the template index as the canonical source/profile/ownership catalog for now. Add a general destination-variant schema only when multiple adapters require data-driven variants that cannot be expressed cleanly by their mapping layer.
+6. Do not add a `nextjs-payload` template or copy the fixture's project-specific assets into the universal core. No universal skill content is approved or bundled by M3.2.
+7. Do not duplicate source assets without an explicit canonical-source relationship.
+8. Keep hooks, permission changes, and MCP configuration outside default installation. Their future support requires separate opt-in design, security disclosure, and explicit user approval.
 
 ## Consequences
 
-- The current index remains intentionally limited to one destination per asset.
+- The template index continues to describe canonical asset source, profile, platform, and ownership. A concrete adapter may map a canonical directory to a fixed native destination.
+- Codex skill mapping is implemented in `src/adapters/codex.ts`; it is project-local and does not modify global Codex configuration.
+- No canonical skill content is currently bundled. A future universal skill must be approved and authored once before it can be installed by Codex or another adapter.
+- A general destination-variant schema remains deferred until a later adapter needs data-driven mappings.
 - The universal workflow remains stack-agnostic and does not inherit Next.js, Payload CMS, or Claude Code assumptions from the reference fixture.
-- Adapter-specific assets must wait for a deliberate installation-mapping design rather than being forced into a shared destination.
 - Future adapter work must validate both the portability of the content and the correctness of its native installation target.
 
 ## Alternatives considered
@@ -41,6 +44,6 @@ Rejected for now. It creates multiple sources of truth unless the catalog also d
 
 Rejected. Different tools have different discovery conventions, and a shared content format does not imply a shared installation path.
 
-### Add destination variants immediately
+### Add a general destination-variant schema
 
-Deferred. The current milestone does not yet implement adapter installation, and there is no concrete runtime consumer for the expanded schema. The capability should be designed when adapter planning needs it, not speculatively added now.
+Deferred. Codex's fixed skill destination can be derived safely from the canonical skill directory in the runtime adapter, so a schema change is unnecessary for this consumer. Revisit this when multiple adapters require configurable mappings that cannot be expressed by deterministic adapter logic.

@@ -57,14 +57,14 @@ const adapters: readonly AdapterDefinition[] = [
     capabilities: {
       rootInstructions: {
         targetSupport: "supported",
-        integration: { status: "notImplemented" },
+        integration: { status: "shared" },
       },
       skills: {
         targetSupport: "supported",
-        integration: { status: "notImplemented" },
+        integration: { status: "native" },
       },
       subagents: {
-        targetSupport: "supported",
+        targetSupport: "unknown",
         integration: { status: "notImplemented" },
       },
       commands: {
@@ -72,15 +72,15 @@ const adapters: readonly AdapterDefinition[] = [
         integration: { status: "notImplemented" },
       },
       hooks: {
-        targetSupport: "supported",
+        targetSupport: "unknown",
         integration: { status: "notImplemented" },
       },
       permissions: {
-        targetSupport: "supported",
+        targetSupport: "unknown",
         integration: { status: "notImplemented" },
       },
       mcpConfig: {
-        targetSupport: "supported",
+        targetSupport: "unknown",
         integration: { status: "notImplemented" },
       },
       nestedInstructions: {

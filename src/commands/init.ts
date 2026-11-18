@@ -116,9 +116,17 @@ export async function prepareInit(options: PrepareInitOptions = {}): Promise<Pre
     project: { name: projectName, summary: projectSummary },
     sources,
   };
-  // Shared workflow assets are rendered once. Each implemented adapter owns
-  // only its adapter-scoped files, preventing duplicate root entrypoints.
-  const sharedRendered = renderTemplate({ ...renderInput, adapters: [] });
+  // Shared non-skill workflow assets are rendered once. Canonical skill
+  // directories are mapped by selected native adapters to their own discovery
+  // paths; they must not leak into Generic or an arbitrary shared destination.
+  const sharedAssets = template.assets.filter((asset) => asset.kind !== "skill");
+  const sharedAssetIds = new Set(sharedAssets.map((asset) => asset.id));
+  const sharedTemplate = Object.freeze({ ...template, assets: Object.freeze(sharedAssets) });
+  const sharedIndex = Object.freeze({
+    ...index,
+    entries: Object.freeze(index.entries.filter((entry) => sharedAssetIds.has(entry.assetId))),
+  });
+  const sharedRendered = renderTemplate({ ...renderInput, template: sharedTemplate, index: sharedIndex, adapters: [] });
   const adapterFiles: RenderedTemplateFile[] = [];
   const adapterWarnings: string[] = [];
   const adapterManualSteps: string[] = [];
@@ -158,12 +166,18 @@ export async function prepareInit(options: PrepareInitOptions = {}): Promise<Pre
     const renderedAdapterFiles = adapterRendered.files.filter(
       (file) => file.scope === "adapter" && file.adapterId === adapterId,
     );
-    const proposalsByDestination = new Map(adapterPlan.files.map((file) => [file.destination, file] as const));
-    const unmatchedFiles = renderedAdapterFiles.filter((file) => {
-      const proposal = proposalsByDestination.get(file.destination);
-      return !proposal || proposal.assetId !== file.assetId || proposal.source !== file.source || proposal.ownership !== file.ownership;
-    });
-    if (renderedAdapterFiles.length !== adapterPlan.files.length || unmatchedFiles.length) {
+    const matchesProposal = (file: RenderedTemplateFile, proposal: (typeof adapterPlan.files)[number]) =>
+      file.assetId === proposal.assetId &&
+      file.ownership === proposal.ownership &&
+      (file.source === proposal.source || file.source.startsWith(`${proposal.source}/`)) &&
+      (file.destination === proposal.destination || file.destination.startsWith(`${proposal.destination}/`));
+    const unmatchedFiles = renderedAdapterFiles.filter(
+      (file) => !adapterPlan.files.some((proposal) => matchesProposal(file, proposal)),
+    );
+    const proposalsWithoutFiles = adapterPlan.files.filter(
+      (proposal) => !renderedAdapterFiles.some((file) => matchesProposal(file, proposal)),
+    );
+    if (unmatchedFiles.length || proposalsWithoutFiles.length) {
       throw new InitCommandError(
         "INVALID_INPUT",
         `Adapter '${adapterId}' planning and rendering outputs do not match.`,

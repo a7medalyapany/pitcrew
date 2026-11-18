@@ -359,7 +359,8 @@ The template test coverage includes core content, template types, index schema/v
 | M2.5      | Atomic filesystem transaction                | Done; local verification passed (19 files/134 tests); hosted CI passed (9/9 jobs) |
 | M2.6      | Installation manifest and baseline storage   | Done; local verification passed (21 files/155 tests); hosted CI passed (9/9 jobs) |
 | M2.7      | `init` command                              | Done; local verification passed (24 files/164 tests); hosted CI passed (9/9 jobs) |
-| M3.1      | Generic adapter                             | Implementation prepared; local and hosted verification pending |
+| M3.1      | Generic adapter                             | Done; local verification passed (26 files/176 tests); hosted CI run `44205268257` passed 9/9 |
+| M3.2      | Codex adapter                                | Implementation prepared; local and hosted verification pending |
 
 There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is template validation tests.
 
@@ -367,17 +368,17 @@ There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is
 
 The following remain intentionally unimplemented:
 
-- Claude Code, Codex, and OpenCode adapter generators and later lifecycle commands.
+- Claude Code and OpenCode adapter generators and later lifecycle commands. Codex root instructions and skill destination mapping are implemented; no universal skill content is bundled yet.
 - Update and uninstall behavior.
-- Adapter-specific destination variants in the template index.
+- A general multi-adapter destination-variant schema; current Codex skill mapping is an explicit runtime adapter mapping from canonical skill directories.
 - Hooks, permission changes, and MCP configuration installation.
 
-The M2.7 init flow is usable for the shared core workflow and the Generic fallback. Native adapters and lifecycle commands remain incomplete. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
+The M2.7 init flow is usable for the shared core workflow and the Generic fallback; M3.1 adds Generic runtime integration and M3.2 adds Codex runtime integration. Claude Code and OpenCode adapters and lifecycle commands remain incomplete. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
 
 
 ## 2026-11-18 — M3.1 Generic adapter
 
-**Status: Implementation prepared; local verification and hosted CI pending**
+**Status: Done**
 
 ### Implementation
 
@@ -394,7 +395,36 @@ The M2.7 init flow is usable for the shared core workflow and the Generic fallba
 - The adapter performs no filesystem access, shell execution, network access, global configuration changes, or tool invocation.
 - The adapter only proposes `AI_WORKFLOW.md`; the existing planner classifies collisions and the existing transaction layer performs approved writes.
 - No skills, subagents, commands, hooks, permissions, MCP configuration, or review-mode integration is claimed.
-- Claude Code, Codex, and OpenCode runtime adapters remain unimplemented.
+- Native Codex, Claude Code, and OpenCode adapters are outside this milestone; Codex support is tracked separately under M3.2.
+- `fixtures/landing-main/` is unchanged.
+
+### Verification
+
+- **Local verification — user-reported on 2026-11-18:** `pnpm typecheck` passed; `pnpm test` passed with 26 test files and 176 tests; `pnpm build` passed. The CLI dry-run preview was also exercised and confirmed to preserve existing user-owned files.
+- **Hosted CI — observed on GitHub Actions, 2026-11-18:** run `44205268257`, commit `2c44f2455acef52a7c353b2651053eb639ae1a3b`, completed successfully with all 9 matrix jobs passing across Ubuntu, macOS, and Windows on Node.js 22, 24, and 26.
+
+
+## 2026-11-18 — M3.2 Codex adapter
+
+**Status: Implementation prepared; local verification and hosted CI pending**
+
+### Implementation
+
+- Added the Codex runtime adapter and registered it in the runtime registry.
+- Uses the shared `AGENTS.md` root instruction file recognized by Codex; no duplicate Codex-specific root instruction file is generated.
+- Maps canonical shared skill directory assets to `.agents/skills/<skill-name>/` when Codex is selected. The mapping keeps one canonical source directory and emits every contained file under the native project-local discovery path.
+- Requires a directory asset with a valid skill directory name and a `SKILL.md` file whose frontmatter contains a matching `name` and a non-empty `description`.
+- Updates init orchestration so skill directories are rendered only by selected native adapters, and adapter proposals can safely describe a directory whose renderer output contains multiple files.
+- Marks only Codex root instructions (`shared`) and skills (`native`) as implemented. Other capabilities remain unknown/not implemented; no Claude Code feature parity is assumed.
+- Adds adapter tests for capability reporting, native destination mapping, multi-file directory rendering, invalid manifests, unsafe/duplicate destinations, and the absence of invented bundled skills. Adds init tests for shared `AGENTS.md` behavior and existing-file preservation.
+
+### Safety and scope boundaries
+
+- The adapter is declarative and uses the shared renderer; it does not read/write the filesystem, execute commands, access the network, or invoke Codex.
+- Skill output is project-local under `.agents/skills/`; no `~/.codex`, `.codex/config.toml`, or other global/user configuration is created or modified.
+- Existing `AGENTS.md` and skill files are handled by the core planner as conflicts/manual actions; no existing user content is overwritten automatically.
+- No universal skill content is bundled because none has been approved. The adapter only maps future canonical skill assets.
+- No hooks, permission changes, MCP configuration, subagents, or command integration is claimed.
 - `fixtures/landing-main/` is unchanged.
 
 ### Verification

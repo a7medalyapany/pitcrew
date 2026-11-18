@@ -35,7 +35,7 @@ export function classifyConflict(
     return {
       kind: "createFile",
       reason: "Destination does not exist in the inspected project snapshot.",
-      approval: "not-required",
+      approval: "required",
     };
   }
 

@@ -4,7 +4,7 @@ Pitcrew is a local-first, adapter-based CLI for installing and maintaining a por
 
 ## Project status
 
-Pitcrew is in early development. M2.7 `init` is verified locally and in hosted CI for the shared workflow. M3.1 adds the Generic adapter's `AI_WORKFLOW.md` human-readable fallback, with explicit manual-discovery guidance and conflict-safe installation. Claude Code, Codex, and OpenCode native generators and later lifecycle commands remain future work. Review every preview and approve each exact file destination before applying; existing user content is preserved.
+Pitcrew is in early development. M2.7 `init` and M3.1 Generic adapter are verified locally and in hosted CI. M3.2 adds the Codex runtime adapter: it uses the shared `AGENTS.md` entrypoint and maps canonical skill directories to project-local `.agents/skills/` paths. No universal skill content is bundled yet. Claude Code and OpenCode native adapters and later lifecycle commands remain future work. Review every preview and approve each exact file destination before applying; existing user content is preserved.
 
 ## Design principles
 
@@ -41,7 +41,7 @@ pnpm build
 - `applyInstallPlan()` is the only filesystem mutation primitive. The `init` orchestrator filters unresolved conflict/manual-action operations into a safe apply plan, while preserving those decisions in the installation manifest. The transaction requires exact destination approvals for every file create/update, verifies rendered content hashes, and revalidates destination preconditions.
 - File updates are backed up under `.agent-workflow/transactions/`; temporary files are created beside their destination before rename. Transaction journals record applying, committed, or incomplete rollback state.
 - On failure, the transaction attempts a conservative rollback and refuses to overwrite files whose contents changed after the transaction wrote them. Backups and journals are retained after success for later manifest/recovery integration.
-- `pitcrew init [target]` is wired to the shared core workflow. Without approvals it is preview-only; `--dry-run` guarantees no writes. Use repeated `--approve <exact-path>` flags to authorize every file destination shown by the preview. The Generic adapter installs `AI_WORKFLOW.md` as a manual-discovery fallback; native Claude Code, Codex, and OpenCode files remain deferred to their adapter milestones.
+- `pitcrew init [target]` is wired to the shared core workflow. Without approvals it is preview-only; `--dry-run` guarantees no writes. Use repeated `--approve <exact-path>` flags to authorize every file destination shown by the preview. The Generic adapter installs `AI_WORKFLOW.md` as a manual-discovery fallback. The Codex adapter uses the shared `AGENTS.md` entrypoint and maps future canonical skill assets to `.agents/skills/`; it does not modify global Codex configuration.
 - Existing `AGENTS.md` and `CLAUDE.md` entrypoints are preserved; the planner proposes manual integration rather than appending or replacing content.
 - Adapters and detectors produce data/proposals only; the transaction layer alone applies approved plans.
 - Template-provided scripts are never executed automatically.

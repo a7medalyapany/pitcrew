@@ -70,6 +70,7 @@ describe("createInstallPlan", () => {
     ]);
     expect(plan.summary).toEqual({ createDirectories: 2, createFiles: 1, updateFiles: 0, skipped: 0, conflicts: 0, manualActions: 0 });
     expect(plan.risk).toBe("low");
+    expect(plan.operations.find((operation) => operation.kind === "createFile")).toMatchObject({ approval: "required" });
   });
 
   it("skips an existing file whose content already matches", () => {

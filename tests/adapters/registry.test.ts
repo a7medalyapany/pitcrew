@@ -44,14 +44,19 @@ describe("adapter registry", () => {
     }
   });
 
-  it("does not claim integrations are implemented prematurely", () => {
+  it("reports only integrations implemented by concrete runtime adapters", () => {
+    const generic = getAdapter("generic")!;
+    expect(generic.capabilities.rootInstructions.integration.status).toBe("manual");
+
+    const codex = getAdapter("codex")!;
+    expect(codex.capabilities.rootInstructions.integration.status).toBe("shared");
+    expect(codex.capabilities.skills.integration.status).toBe("native");
+
     for (const adapter of listAdapters()) {
       for (const [capabilityId, capability] of Object.entries(adapter.capabilities)) {
-        if (adapter.id === "generic" && capabilityId === "rootInstructions") {
-          expect(capability.integration.status).toBe("manual");
-        } else {
-          expect(capability.integration.status).toBe("notImplemented");
-        }
+        if (adapter.id === "generic" && capabilityId === "rootInstructions") continue;
+        if (adapter.id === "codex" && (capabilityId === "rootInstructions" || capabilityId === "skills")) continue;
+        expect(capability.integration.status).toBe("notImplemented");
       }
     }
   });

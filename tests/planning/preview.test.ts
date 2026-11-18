@@ -7,17 +7,17 @@ function operation(overrides: Partial<InstallOperation> = {}): InstallOperation 
     id: "op-create",
     kind: "createFile",
     destination: "docs/guide.md",
-    approval: "not-required",
+    approval: "required",
     ...overrides,
   };
 }
 
 function plan(overrides: Partial<InstallPlan> = {}): InstallPlan {
   const operations = [
-    operation({ id: "op-dir", kind: "createDirectory", destination: "docs" }),
+    operation({ id: "op-dir", kind: "createDirectory", destination: "docs", approval: "not-required" }),
     operation(),
     operation({ id: "op-update", kind: "updateFile", destination: "workflow/task.md", approval: "required", reason: "Managed file is unchanged since installation." }),
-    operation({ id: "op-skip", kind: "skip", destination: "docs/current.md" }),
+    operation({ id: "op-skip", kind: "skip", destination: "docs/current.md", approval: "not-required" }),
     operation({ id: "op-conflict", kind: "conflict", destination: "docs/custom.md", approval: "required", conflictCode: "existing-user-owned-file", reason: "An unmanaged file already exists." }),
     operation({ id: "op-manual", kind: "manualAction", destination: "AGENTS.md", approval: "required", reason: "Integrate the shared entrypoint manually." }),
   ];
@@ -46,7 +46,7 @@ describe("createInstallPreview", () => {
     expect(preview.operations.map(({ kind }) => kind)).toEqual([
       "createDirectory", "createFile", "updateFile", "skip", "conflict", "manualAction",
     ]);
-    expect(preview.requiredApprovals.map(({ id }) => id)).toEqual(["op-update", "op-conflict", "op-manual"]);
+    expect(preview.requiredApprovals.map(({ id }) => id)).toEqual(["op-create", "op-update", "op-conflict", "op-manual"]);
     expect(preview.writesTarget).toBe(false);
     expect(JSON.stringify(preview)).not.toContain("# secret file content");
     expect(Object.isFrozen(preview)).toBe(true);
@@ -97,6 +97,8 @@ describe("createInstallPreview", () => {
     expect(output).toContain("Conflicts requiring resolution");
     expect(output).toContain("Manual integration actions");
     expect(output).toContain("Git working tree has 1 changed path(s)");
+    expect(output).toContain("Required approvals/reviews: 4");
+    expect(output).toContain("Review/approval required before any future apply.");
     expect(output).toContain("This preview does not approve or authorize any operation.");
     expect(output).toContain("no files were written, changed, or deleted");
   });
