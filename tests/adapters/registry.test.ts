@@ -29,21 +29,29 @@ describe("adapter registry", () => {
     }
   });
 
-  it("marks generic target support as unknown", () => {
+  it("marks Generic root instructions as a manual integration", () => {
     const adapter = getAdapter("generic");
 
     expect(adapter).toBeDefined();
-
-    for (const capability of Object.values(adapter!.capabilities)) {
-      expect(capability.targetSupport).toBe("unknown");
-      expect(capability.integration.status).toBe("notImplemented");
+    expect(adapter!.capabilities.rootInstructions).toEqual({
+      targetSupport: "unknown",
+      integration: { status: "manual" },
+    });
+    for (const [capability, status] of Object.entries(adapter!.capabilities)) {
+      if (capability === "rootInstructions") continue;
+      expect(status.targetSupport).toBe("unknown");
+      expect(status.integration.status).toBe("notImplemented");
     }
   });
 
   it("does not claim integrations are implemented prematurely", () => {
     for (const adapter of listAdapters()) {
-      for (const capability of Object.values(adapter.capabilities)) {
-        expect(capability.integration.status).toBe("notImplemented");
+      for (const [capabilityId, capability] of Object.entries(adapter.capabilities)) {
+        if (adapter.id === "generic" && capabilityId === "rootInstructions") {
+          expect(capability.integration.status).toBe("manual");
+        } else {
+          expect(capability.integration.status).toBe("notImplemented");
+        }
       }
     }
   });

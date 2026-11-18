@@ -53,7 +53,7 @@ describe("adapter runtime contract", () => {
 
     expect(capabilities.rootInstructions).toEqual({
       targetSupport: "unknown",
-      integration: { status: "notImplemented" },
+      integration: { status: "manual" },
     });
   });
 

@@ -6,7 +6,7 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 
 ## Current position
 
-**Milestones M0, M1, and M2.1–M2.6 are complete.** M2.4 local verification was reported on 2026-11-17: typecheck passed, 18 test files/126 tests passed, and build passed. M2.5 local verification was reported on 2026-11-17: typecheck passed, 19 test files/134 tests passed, and build passed. M2.5 hosted CI run `44183011936` on commit `0a4524860450e61c1f2afbdb2dc77830f356229c` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs. M2.6 local verification passed (21 test files/155 tests); hosted CI run `44190732268` on commit `37e40e8347ad035c06136b39d40981dd001a6112` passed all 9 OS/Node matrix jobs. M2.7 implementation is prepared; local verification and hosted CI are pending.
+**Milestones M0, M1, and M2.1–M2.7 are complete.** M2.4 local verification was reported on 2026-11-17: typecheck passed, 18 test files/126 tests passed, and build passed. M2.5 local verification was reported on 2026-11-17: typecheck passed, 19 test files/134 tests passed, and build passed. M2.5 hosted CI run `44183011936` on commit `0a4524860450e61c1f2afbdb2dc77830f356229c` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs. M2.6 local verification passed (21 test files/155 tests); hosted CI run `44190732268` on commit `37e40e8347ad035c06136b39d40981dd001a6112` passed all 9 OS/Node matrix jobs. M2.7 local verification passed (24 test files/164 tests), typecheck and build passed; hosted CI run `44201006445` on commit `e7bb2e6d90d5a6880abb3933a4ea2cb317f6886c` passed all 9 matrix jobs. M3.1 implementation is prepared; local verification and hosted CI are pending.
 
 | Milestone | Original scope                                      | Status | Notes                                                                                                                                                                                                                           |
 | --------- | --------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -25,7 +25,8 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 | M2.4      | Implement dry-run preview                           | Done   | Pure preview model and deterministic text/JSON formatter. User-reported local verification: 18 test files/126 tests, typecheck, and build passed.                                                                               |
 | M2.5      | Implement atomic filesystem transaction             | Done   | Explicit path-specific approvals, preflight/revalidation, atomic writes, backups, transaction journal, and rollback. Local verification passed (19 test files/134 tests); hosted CI run `44183011936` passed all 9 matrix jobs. |
 | M2.6      | Implement installation manifest and baseline storage | Done | User-reported local verification: typecheck, 21 test files/155 tests, build passed. Hosted CI run `44190732268` passed all 9 matrix jobs. |
-| M2.7      | Implement `init` command | Implementation prepared; verification pending | Connect read-only detection/snapshot, core template rendering, planning/preview, path approvals, manifest/baseline artifacts, and atomic transaction. |
+| M2.7      | Implement `init` command | Done | User-reported local verification: 24 test files/164 tests, typecheck, and build passed. Hosted CI run `44201006445` passed all 9 matrix jobs. |
+| M3.1      | Implement generic adapter | Implementation prepared; verification pending | Adds the manual-discovery `AI_WORKFLOW.md` entrypoint through the shared planner and transaction, preserving existing content. |
 
 There is no M1.6 in the original specification. The renderer is M1.4, and template validation tests are M1.5.
 
@@ -121,7 +122,11 @@ The artifact-preparation function is intended for the initial-install flow. Exis
 
 ## M2.7 implementation boundary
 
-The initial `init` orchestration is implemented in the working patch and awaits local/hosted verification. It connects inspection, bounded project detection and snapshotting, bundled core template validation/rendering, conflict-aware planning, preview, exact destination approvals, manifest/baseline preparation, and the atomic transaction. Existing installations are detected and rejected as fresh installs. Native adapter-specific files and interactive prompts remain outside M2.7.
+The initial `init` orchestration is complete and verified. It connects inspection, bounded project detection and snapshotting, bundled core template validation/rendering, conflict-aware planning, preview, exact destination approvals, manifest/baseline preparation, and the atomic transaction. Existing installations are detected and rejected as fresh installs. Native adapter-specific files and interactive prompts remain outside M2.7.
+
+## M3.1 implementation boundary
+
+The Generic adapter provides `AI_WORKFLOW.md` as a human-readable fallback. It reports root-instruction integration as manual, does not claim automatic discovery by arbitrary tools, and explains that users may need to configure their tool to read the file. The adapter is declarative: it proposes adapter-scoped files, validates proposals, and delegates rendering to the shared pure renderer. The init orchestrator checks adapter proposals against rendered outputs before passing them to the existing planner. Existing `AI_WORKFLOW.md` content is preserved through shared-entrypoint conflict handling. No hooks, permissions, MCP configuration, shell execution, network access, or global user configuration are introduced. Local and hosted verification are pending.
 
 ## Non-negotiable implementation boundaries
 

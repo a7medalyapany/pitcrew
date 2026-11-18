@@ -2,6 +2,7 @@ import type { TemplateAsset, TemplateCatalog, TemplateDefinition } from "./types
 
 const coreAssets: readonly TemplateAsset[] = [
   { id: "root-instructions", kind: "instructions", capabilities: ["rootInstructions"], scope: { type: "shared" }, source: { type: "file", path: "AGENTS.md" } },
+  { id: "generic-root-instructions", kind: "instructions", capabilities: ["rootInstructions"], scope: { type: "adapter", adapterId: "generic" }, source: { type: "file", path: "AI_WORKFLOW.md" } },
   { id: "project-brief", kind: "documentation", capabilities: [], scope: { type: "shared" }, source: { type: "file", path: "docs/project-brief.md" } },
   { id: "architecture", kind: "documentation", capabilities: [], scope: { type: "shared" }, source: { type: "file", path: "docs/architecture.md" } },
   { id: "execution-roadmap", kind: "documentation", capabilities: [], scope: { type: "shared" }, source: { type: "file", path: "docs/execution-roadmap.md" } },

@@ -4,6 +4,7 @@
   "templateVersion": "0.1.0",
   "entries": [
     { "assetId": "root-instructions", "destination": "AGENTS.md", "minimumProfile": "minimal", "ownership": "shared-entrypoint" },
+    { "assetId": "generic-root-instructions", "destination": "AI_WORKFLOW.md", "minimumProfile": "minimal", "ownership": "shared-entrypoint" },
     { "assetId": "project-brief", "destination": "docs/project-brief.md", "minimumProfile": "minimal", "ownership": "managed" },
     { "assetId": "architecture", "destination": "docs/architecture.md", "minimumProfile": "standard", "ownership": "managed" },
     { "assetId": "execution-roadmap", "destination": "docs/execution-roadmap.md", "minimumProfile": "standard", "ownership": "managed" },

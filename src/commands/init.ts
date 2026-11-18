@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { basename } from "node:path";
 
 import { isAdapterId } from "../adapters/registry.js";
+import { getRuntimeAdapter } from "../adapters/runtime-registry.js";
 import type { AdapterId } from "../adapters/types.js";
 import { projectConfigSchema } from "../config/schema.js";
 import { detectProject } from "../detection/detect-project.js";
@@ -106,14 +107,83 @@ export async function prepareInit(options: PrepareInitOptions = {}): Promise<Pre
   const projectSummary = options.projectSummary?.trim() ?? "";
   if (projectName.length > 120) throw new InitCommandError("INVALID_INPUT", "Project name must be 120 characters or fewer.");
   if (projectSummary.length > 2000) throw new InitCommandError("INVALID_INPUT", "Project summary must be 2,000 characters or fewer.");
-  const renderedCore = renderTemplate({
+  const platform = getTemplatePlatform();
+  const renderInput = {
     template,
     index,
     profile: profile as ProfileId,
-    adapters,
-    platform: getTemplatePlatform(),
+    platform,
     project: { name: projectName, summary: projectSummary },
     sources,
+  };
+  // Shared workflow assets are rendered once. Each implemented adapter owns
+  // only its adapter-scoped files, preventing duplicate root entrypoints.
+  const sharedRendered = renderTemplate({ ...renderInput, adapters: [] });
+  const adapterFiles: RenderedTemplateFile[] = [];
+  const adapterWarnings: string[] = [];
+  const adapterManualSteps: string[] = [];
+  const unavailableAdapters: AdapterId[] = [];
+  const existingAdapterSnapshot = {
+    entries: snapshotEntries.map((entry) => ({
+      path: entry.path,
+      kind: entry.type,
+      ...(entry.sha256 ? { contentHash: entry.sha256 } : {}),
+    })),
+  };
+
+  for (const adapterId of adapters) {
+    const runtimeAdapter = getRuntimeAdapter(adapterId);
+    if (!runtimeAdapter) {
+      unavailableAdapters.push(adapterId);
+      continue;
+    }
+
+    const context = { platform };
+    const adapterPlan = runtimeAdapter.planFiles({
+      profile: profile as ProfileId,
+      template,
+      index,
+      existing: existingAdapterSnapshot,
+      context,
+    });
+    const validation = runtimeAdapter.validate({ files: adapterPlan.files, context });
+    if (validation.errors.length) {
+      throw new InitCommandError(
+        "INVALID_INPUT",
+        `Adapter '${adapterId}' validation failed: ${validation.errors.map((error) => error.message).join("; ")}`,
+      );
+    }
+
+    const adapterRendered = runtimeAdapter.render({ ...renderInput, adapters: [adapterId] });
+    const renderedAdapterFiles = adapterRendered.files.filter(
+      (file) => file.scope === "adapter" && file.adapterId === adapterId,
+    );
+    const proposalsByDestination = new Map(adapterPlan.files.map((file) => [file.destination, file] as const));
+    const unmatchedFiles = renderedAdapterFiles.filter((file) => {
+      const proposal = proposalsByDestination.get(file.destination);
+      return !proposal || proposal.assetId !== file.assetId || proposal.source !== file.source || proposal.ownership !== file.ownership;
+    });
+    if (renderedAdapterFiles.length !== adapterPlan.files.length || unmatchedFiles.length) {
+      throw new InitCommandError(
+        "INVALID_INPUT",
+        `Adapter '${adapterId}' planning and rendering outputs do not match.`,
+      );
+    }
+
+    adapterFiles.push(...renderedAdapterFiles);
+    adapterWarnings.push(
+      ...adapterPlan.warnings.map((warning) => `${adapterId}: ${warning.message}`),
+      ...validation.warnings.map((warning) => `${adapterId}: ${warning.message}`),
+    );
+    adapterManualSteps.push(...adapterPlan.manualSteps, ...validation.manualSteps);
+  }
+
+  const renderedCore: RenderedTemplate = Object.freeze({
+    ...sharedRendered,
+    adapters: Object.freeze([...adapters]),
+    files: Object.freeze(
+      [...sharedRendered.files, ...adapterFiles].sort((left, right) => comparePath(left.destination, right.destination)),
+    ),
   });
 
   const config = projectConfigSchema.parse({
@@ -189,10 +259,12 @@ export async function prepareInit(options: PrepareInitOptions = {}): Promise<Pre
   const warnings = [
     ...detection.warnings,
     ...(detection.agentConfigs.length
-      ? ["Existing AI-tool instructions/configuration were detected and will remain untouched unless a specific conflict is shown. Review any existing tool entrypoint manually; native adapter integration is deferred to M3."]
+      ? ["Existing AI-tool instructions/configuration were detected and will remain untouched. Review existing tool entrypoints manually; Pitcrew does not merge them automatically."]
       : []),
-    ...(adapters.some((adapter) => adapter !== "generic")
-      ? ["This milestone installs the shared core workflow only. Native tool-specific files are deferred to the adapter milestone."]
+    ...adapterWarnings,
+    ...adapterManualSteps,
+    ...(unavailableAdapters.length
+      ? [`No runtime adapter is implemented yet for: ${unavailableAdapters.join(", ")}. The shared core workflow is still available; no native files are generated for those adapters.`]
       : []),
   ];
 

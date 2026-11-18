@@ -311,7 +311,7 @@ The template test coverage includes core content, template types, index schema/v
 
 ## 2026-11-17 — M2.7 `init` command orchestration
 
-**Status: Implementation prepared; local verification and hosted CI pending**
+**Status: Done**
 
 ### Implementation
 
@@ -336,8 +336,8 @@ The template test coverage includes core content, template types, index schema/v
 
 ### Verification
 
-- **Local verification:** pending user execution of `pnpm typecheck`, `pnpm test`, and `pnpm build`.
-- **Hosted CI:** pending; no run ID or commit is claimed.
+- **Local verification — user-reported on 2026-11-17:** `pnpm typecheck` passed; `pnpm test` passed with 24 test files and 164 tests; `pnpm build` passed.
+- **Hosted CI — observed on GitHub Actions, 2026-11-17:** run `44201006445`, commit `e7bb2e6d90d5a6880abb3933a4ea2cb317f6886c`, completed successfully with all 9 matrix jobs passing across Ubuntu, macOS, and Windows on Node.js 22, 24, and 26.
 
 ## Original roadmap status
 
@@ -358,7 +358,8 @@ The template test coverage includes core content, template types, index schema/v
 | M2.4      | Dry-run preview                              | Done; local verification passed (18 files/126 tests)                              |
 | M2.5      | Atomic filesystem transaction                | Done; local verification passed (19 files/134 tests); hosted CI passed (9/9 jobs) |
 | M2.6      | Installation manifest and baseline storage   | Done; local verification passed (21 files/155 tests); hosted CI passed (9/9 jobs) |
-| M2.7      | `init` command                              | Implementation prepared; local and hosted verification pending |
+| M2.7      | `init` command                              | Done; local verification passed (24 files/164 tests); hosted CI passed (9/9 jobs) |
+| M3.1      | Generic adapter                             | Implementation prepared; local and hosted verification pending |
 
 There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is template validation tests.
 
@@ -366,10 +367,37 @@ There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is
 
 The following remain intentionally unimplemented:
 
-- Local/hosted verification of the M2.7 `init` orchestration patch.
-- Concrete adapter generators and later lifecycle commands.
+- Claude Code, Codex, and OpenCode adapter generators and later lifecycle commands.
 - Update and uninstall behavior.
 - Adapter-specific destination variants in the template index.
 - Hooks, permission changes, and MCP configuration installation.
 
-The template renderer, planner, preview, and transaction primitive are not yet a usable installer. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
+The M2.7 init flow is usable for the shared core workflow and the Generic fallback. Native adapters and lifecycle commands remain incomplete. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
+
+
+## 2026-11-18 — M3.1 Generic adapter
+
+**Status: Implementation prepared; local verification and hosted CI pending**
+
+### Implementation
+
+- Added the Generic runtime adapter and runtime registry. The adapter implements metadata, capability reporting, declarative file planning, validation, and rendering through the shared pure renderer.
+- Added `AI_WORKFLOW.md` as an adapter-scoped root instruction fallback. It points to the canonical workflow documents rather than duplicating their process content.
+- Reports Generic root-instruction integration as `manual`; target discovery remains `unknown`. Other capabilities remain unimplemented and unclaimed.
+- Integrated runtime adapter planning, validation, and rendering into `init`. Shared assets are rendered once, adapter-scoped outputs are checked against adapter proposals, and unavailable native adapters are reported explicitly.
+- Added manual-discovery guidance to the init preview. Users may need to configure their AI tool to read `AI_WORKFLOW.md` or point the tool to it.
+- Uses `shared-entrypoint` ownership so an existing `AI_WORKFLOW.md` is preserved and recorded for manual resolution.
+- Added adapter and init integration tests for metadata, capability reporting, profile filtering, proposal validation, rendering, explicit approval, and existing-file preservation.
+
+### Safety and scope boundaries
+
+- The adapter performs no filesystem access, shell execution, network access, global configuration changes, or tool invocation.
+- The adapter only proposes `AI_WORKFLOW.md`; the existing planner classifies collisions and the existing transaction layer performs approved writes.
+- No skills, subagents, commands, hooks, permissions, MCP configuration, or review-mode integration is claimed.
+- Claude Code, Codex, and OpenCode runtime adapters remain unimplemented.
+- `fixtures/landing-main/` is unchanged.
+
+### Verification
+
+- **Local verification:** pending user execution of `pnpm typecheck`, `pnpm test`, and `pnpm build`.
+- **Hosted CI:** pending; no run ID or commit is claimed.
