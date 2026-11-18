@@ -360,7 +360,7 @@ The template test coverage includes core content, template types, index schema/v
 | M2.6      | Installation manifest and baseline storage   | Done; local verification passed (21 files/155 tests); hosted CI passed (9/9 jobs) |
 | M2.7      | `init` command                              | Done; local verification passed (24 files/164 tests); hosted CI passed (9/9 jobs) |
 | M3.1      | Generic adapter                             | Done; local verification passed (26 files/176 tests); hosted CI run `44205268257` passed 9/9 |
-| M3.2      | Codex adapter                                | Implementation prepared; local and hosted verification pending |
+| M3.2      | Codex adapter                                | Done; local verification passed (28 files/190 tests, typecheck, build, diff check); hosted CI run `44212149205` passed 9/9; disposable install verification passed |
 
 There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is template validation tests.
 
@@ -373,7 +373,7 @@ The following remain intentionally unimplemented:
 - A general multi-adapter destination-variant schema; current Codex skill mapping is an explicit runtime adapter mapping from canonical skill directories.
 - Hooks, permission changes, and MCP configuration installation.
 
-The M2.7 init flow is usable for the shared core workflow and the Generic fallback; M3.1 adds Generic runtime integration and M3.2 adds Codex runtime integration. Claude Code and OpenCode adapters and lifecycle commands remain incomplete. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
+The M2.7 init flow is usable for the shared core workflow and the Generic fallback; M3.1 adds Generic runtime integration and M3.2 adds Codex runtime integration. The next adapter milestones are M3.3 OpenCode and M3.4 Claude Code, followed by M3.5 adapter compatibility and collision tests. Lifecycle commands remain in M4. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
 
 
 ## 2026-11-18 — M3.1 Generic adapter
@@ -406,7 +406,7 @@ The M2.7 init flow is usable for the shared core workflow and the Generic fallba
 
 ## 2026-11-18 — M3.2 Codex adapter
 
-**Status: Implementation prepared; local verification and hosted CI pending**
+**Status: Done**
 
 ### Implementation
 
@@ -429,5 +429,8 @@ The M2.7 init flow is usable for the shared core workflow and the Generic fallba
 
 ### Verification
 
-- **Local verification:** pending user execution of `pnpm typecheck`, `pnpm test`, and `pnpm build`.
-- **Hosted CI:** pending; no run ID or commit is claimed.
+- **Local verification — user-reported on 2026-11-18:** `git diff --check`, `pnpm typecheck`, `pnpm test` (28 test files/190 tests), and `pnpm build` passed.
+- **Hosted CI — observed on GitHub Actions, 2026-11-18:** run `44212149205`, commit `b4a0f577e60be19b7f6ff4bef4e48d33fc2ef771`, completed successfully with all 9 matrix jobs passing across Ubuntu, macOS, and Windows on Node.js 22, 24, and 26.
+- **Disposable installation verification — user-reported on 2026-11-18:** a real CLI install into a fresh temporary directory produced the 23 expected files; `AGENTS.md`, `config.json`, and `manifest.json` checks passed; no Generic `AI_WORKFLOW.md`, invented `.agents/skills/`, or unexpected `.codex/config.toml` was created; a second init safely refused to overwrite the existing installation.
+- **Unverified behavior:** no universal skill asset exists yet, so installation of actual bundled skill content is intentionally not demonstrated. Skill mapping and validation are covered with synthetic adapter tests.
+- **Remaining known risk:** the previously documented narrow filesystem TOCTOU limitation remains outside this adapter milestone.
