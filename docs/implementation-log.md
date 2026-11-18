@@ -368,12 +368,12 @@ There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is
 
 The following remain intentionally unimplemented:
 
-- Claude Code and OpenCode adapter generators and later lifecycle commands. Codex root instructions and skill destination mapping are implemented; no universal skill content is bundled yet.
+- Claude Code adapter generation and later lifecycle commands. Codex and OpenCode root instructions and skill destination mappings are implemented; no universal skill content is bundled yet.
 - Update and uninstall behavior.
 - A general multi-adapter destination-variant schema; current Codex skill mapping is an explicit runtime adapter mapping from canonical skill directories.
 - Hooks, permission changes, and MCP configuration installation.
 
-The M2.7 init flow is usable for the shared core workflow and the Generic fallback; M3.1 adds Generic runtime integration and M3.2 adds Codex runtime integration. The next adapter milestones are M3.3 OpenCode and M3.4 Claude Code, followed by M3.5 adapter compatibility and collision tests. Lifecycle commands remain in M4. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
+The M2.7 init flow is usable for the shared core workflow and the Generic fallback; M3.1 adds Generic runtime integration, M3.2 adds Codex runtime integration, and M3.3 adds OpenCode runtime integration. The next adapter milestone is M3.4 Claude Code, followed by M3.5 adapter compatibility and collision tests. Lifecycle commands remain in M4. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
 
 
 ## 2026-11-18 — M3.1 Generic adapter
@@ -432,5 +432,36 @@ The M2.7 init flow is usable for the shared core workflow and the Generic fallba
 - **Local verification — user-reported on 2026-11-18:** `git diff --check`, `pnpm typecheck`, `pnpm test` (28 test files/190 tests), and `pnpm build` passed.
 - **Hosted CI — observed on GitHub Actions, 2026-11-18:** run `44212149205`, commit `b4a0f577e60be19b7f6ff4bef4e48d33fc2ef771`, completed successfully with all 9 matrix jobs passing across Ubuntu, macOS, and Windows on Node.js 22, 24, and 26.
 - **Disposable installation verification — user-reported on 2026-11-18:** a real CLI install into a fresh temporary directory produced the 23 expected files; `AGENTS.md`, `config.json`, and `manifest.json` checks passed; no Generic `AI_WORKFLOW.md`, invented `.agents/skills/`, or unexpected `.codex/config.toml` was created; a second init safely refused to overwrite the existing installation.
+- **Unverified behavior:** no universal skill asset exists yet, so installation of actual bundled skill content is intentionally not demonstrated. Skill mapping and validation are covered with synthetic adapter tests.
+- **Remaining known risk:** the previously documented narrow filesystem TOCTOU limitation remains outside this adapter milestone.
+
+## 2026-11-18 — M3.3 OpenCode adapter
+
+**Status: Done**
+
+### Implementation
+
+- Added the OpenCode runtime adapter and registered it in the runtime registry.
+- Uses the shared root `AGENTS.md` entrypoint; no duplicate OpenCode-specific root instruction file is generated.
+- Maps canonical shared skill directory assets to `.opencode/skills/<skill-name>/` when OpenCode is selected. The mapping keeps one canonical source directory and emits every contained file under the native project-local discovery path.
+- Requires a directory asset with a valid skill directory name and a `SKILL.md` file whose frontmatter contains a matching `name` and a non-empty `description`.
+- Filters skill assets by profile and platform before validation/rendering, matching the shared renderer's selection behavior. Added regression coverage for both Codex and OpenCode so excluded skills do not fail installation.
+- Marks only OpenCode root instructions (`shared`) and skills (`native`) as implemented. Other capabilities remain not implemented; no Claude Code feature parity is assumed.
+- Adds adapter tests for capability reporting, native destination mapping, multi-file directory rendering, invalid manifests, unsafe/duplicate destinations, profile/platform filtering, and the absence of invented bundled skills. Adds init tests for shared `AGENTS.md` behavior and existing-file preservation.
+
+### Safety and scope boundaries
+
+- The adapter is declarative and uses the shared renderer; it does not read/write the filesystem, execute commands, access the network, or invoke OpenCode.
+- Skill output is project-local under `.opencode/skills/`; no global OpenCode configuration is created or modified.
+- Existing `opencode.json`, `opencode.jsonc`, and `.opencode/` content are preserved through the core planner's conflict handling; no existing user content is overwritten automatically.
+- No universal skill content is bundled because none has been approved. The adapter only maps future canonical skill assets.
+- No custom agents, commands, hooks, permission changes, or MCP configuration is claimed.
+- `fixtures/landing-main/` is unchanged.
+
+### Verification
+
+- **Local verification — user-reported on 2026-11-18:** `git diff --check`, `pnpm typecheck`, `pnpm test` (30 test files/208 tests), and `pnpm build` passed.
+- **Hosted CI — user-reported on 2026-11-18:** hosted CI passed for commit `37d8f66e401da33c2292f5e6a5ce0e40d0696cce`. A workflow run ID and individual job results were not independently available during this closeout, so no matrix count is asserted here.
+- **Disposable installation verification — user-reported on 2026-11-18:** a real CLI install into a fresh temporary project applied 23 approved files and committed the transaction; config and manifest JSON parsed successfully; existing `opencode.json`, `opencode.jsonc`, and `.opencode/notes.md` were preserved; no `.opencode/skills/` directory was created because no canonical skill assets are bundled.
 - **Unverified behavior:** no universal skill asset exists yet, so installation of actual bundled skill content is intentionally not demonstrated. Skill mapping and validation are covered with synthetic adapter tests.
 - **Remaining known risk:** the previously documented narrow filesystem TOCTOU limitation remains outside this adapter milestone.
