@@ -48,6 +48,9 @@ describe("adapter registry", () => {
     const generic = getAdapter("generic")!;
     expect(generic.capabilities.rootInstructions.integration.status).toBe("manual");
 
+    const claude = getAdapter("claude")!;
+    expect(claude.capabilities.rootInstructions.integration.status).toBe("native");
+
     const codex = getAdapter("codex")!;
     expect(codex.capabilities.rootInstructions.integration.status).toBe("shared");
     expect(codex.capabilities.skills.integration.status).toBe("native");
@@ -55,7 +58,13 @@ describe("adapter registry", () => {
     for (const adapter of listAdapters()) {
       for (const [capabilityId, capability] of Object.entries(adapter.capabilities)) {
         if (adapter.id === "generic" && capabilityId === "rootInstructions") continue;
-        if ((adapter.id === "codex" || adapter.id === "opencode") && (capabilityId === "rootInstructions" || capabilityId === "skills")) continue;
+        if (
+          (adapter.id === "claude" && capabilityId === "rootInstructions") ||
+          ((adapter.id === "codex" || adapter.id === "opencode") &&
+            (capabilityId === "rootInstructions" || capabilityId === "skills"))
+        ) {
+          continue;
+        }
         expect(capability.integration.status).toBe("notImplemented");
       }
     }

@@ -3,16 +3,77 @@
   "templateId": "core-workflow",
   "templateVersion": "0.1.0",
   "entries": [
-    { "assetId": "root-instructions", "destination": "AGENTS.md", "minimumProfile": "minimal", "ownership": "shared-entrypoint" },
-    { "assetId": "generic-root-instructions", "destination": "AI_WORKFLOW.md", "minimumProfile": "minimal", "ownership": "shared-entrypoint" },
-    { "assetId": "project-brief", "destination": "docs/project-brief.md", "minimumProfile": "minimal", "ownership": "managed" },
-    { "assetId": "architecture", "destination": "docs/architecture.md", "minimumProfile": "standard", "ownership": "managed" },
-    { "assetId": "execution-roadmap", "destination": "docs/execution-roadmap.md", "minimumProfile": "standard", "ownership": "managed" },
-    { "assetId": "decisions", "destination": "docs/decisions", "minimumProfile": "standard", "ownership": "managed" },
-    { "assetId": "debugging-notes", "destination": "docs/debugging-notes", "minimumProfile": "standard", "ownership": "managed" },
-    { "assetId": "runbooks", "destination": "docs/runbooks", "minimumProfile": "standard", "ownership": "managed" },
-    { "assetId": "task-lifecycle", "destination": "workflow/task-lifecycle.md", "minimumProfile": "minimal", "ownership": "managed" },
-    { "assetId": "definition-of-done", "destination": "workflow/definition-of-done.md", "minimumProfile": "standard", "ownership": "managed" },
-    { "assetId": "safety-policy", "destination": "workflow/safety-policy.md", "minimumProfile": "minimal", "ownership": "managed" }
+    {
+      "assetId": "root-instructions",
+      "destination": "AGENTS.md",
+      "minimumProfile": "minimal",
+      "ownership": "shared-entrypoint"
+    },
+    {
+      "assetId": "claude-root-instructions",
+      "destination": "CLAUDE.md",
+      "minimumProfile": "minimal",
+      "ownership": "shared-entrypoint"
+    },
+    {
+      "assetId": "generic-root-instructions",
+      "destination": "AI_WORKFLOW.md",
+      "minimumProfile": "minimal",
+      "ownership": "shared-entrypoint"
+    },
+    {
+      "assetId": "project-brief",
+      "destination": "docs/project-brief.md",
+      "minimumProfile": "minimal",
+      "ownership": "managed"
+    },
+    {
+      "assetId": "architecture",
+      "destination": "docs/architecture.md",
+      "minimumProfile": "standard",
+      "ownership": "managed"
+    },
+    {
+      "assetId": "execution-roadmap",
+      "destination": "docs/execution-roadmap.md",
+      "minimumProfile": "standard",
+      "ownership": "managed"
+    },
+    {
+      "assetId": "decisions",
+      "destination": "docs/decisions",
+      "minimumProfile": "standard",
+      "ownership": "managed"
+    },
+    {
+      "assetId": "debugging-notes",
+      "destination": "docs/debugging-notes",
+      "minimumProfile": "standard",
+      "ownership": "managed"
+    },
+    {
+      "assetId": "runbooks",
+      "destination": "docs/runbooks",
+      "minimumProfile": "standard",
+      "ownership": "managed"
+    },
+    {
+      "assetId": "task-lifecycle",
+      "destination": "workflow/task-lifecycle.md",
+      "minimumProfile": "minimal",
+      "ownership": "managed"
+    },
+    {
+      "assetId": "definition-of-done",
+      "destination": "workflow/definition-of-done.md",
+      "minimumProfile": "standard",
+      "ownership": "managed"
+    },
+    {
+      "assetId": "safety-policy",
+      "destination": "workflow/safety-policy.md",
+      "minimumProfile": "minimal",
+      "ownership": "managed"
+    }
   ]
 }

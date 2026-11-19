@@ -24,7 +24,7 @@ describe("Generic adapter", () => {
       version: "0.1.0",
     });
     expect(getRuntimeAdapter("generic")).toBe(genericAdapter);
-    expect(getRuntimeAdapter("claude")).toBeUndefined();
+    expect(getRuntimeAdapter("claude")).toMatchObject({ id: "claude" });
   });
 
   it("reports root instructions as manual integration without claiming automatic discovery", () => {

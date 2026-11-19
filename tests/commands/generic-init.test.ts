@@ -60,12 +60,13 @@ describe("Generic adapter init integration", () => {
     ]));
   });
 
-  it("does not install the Generic fallback when only another adapter is selected", async () => {
+  it("installs Claude instructions without the Generic fallback when Claude is selected", async () => {
     const target = await makeTarget();
     const prepared = await prepareInit({ targetPath: target, adapters: ["claude"] });
 
     expect(prepared.rendered.files.some((file) => file.destination === "AI_WORKFLOW.md")).toBe(false);
-    expect(prepared.warnings.join(" ")).toContain("No runtime adapter is implemented yet for: claude");
+    expect(prepared.rendered.files.some((file) => file.destination === "CLAUDE.md")).toBe(true);
+    expect(prepared.warnings.join(" ")).not.toContain("No runtime adapter is implemented yet for: claude");
   });
 
   it("installs one shared AGENTS.md alongside the selected Generic fallback", async () => {

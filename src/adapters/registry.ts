@@ -11,7 +11,7 @@ const adapters: readonly AdapterDefinition[] = [
     capabilities: {
       rootInstructions: {
         targetSupport: "supported",
-        integration: { status: "notImplemented" },
+        integration: { status: "native" },
       },
       skills: {
         targetSupport: "supported",
