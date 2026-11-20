@@ -19,7 +19,10 @@ import type { TemplatePlatform } from "../templates/index/types.js";
 import type { RenderedTemplate, RenderedTemplateFile } from "../templates/renderer/types.js";
 import { loadBundledTemplate } from "../templates/bundled.js";
 import { collectProjectSnapshot, ProjectSnapshotError } from "../inspection/project-snapshot.js";
-import { prepareInstallationArtifacts, readInstallationManifest } from "../installation/manifest/storage.js";
+import {
+  inspectInstallationState,
+  prepareInstallationArtifacts,
+} from "../installation/manifest/storage.js";
 import { applyInstallPlan } from "../installation/transaction/index.js";
 import type { InstallTransactionResult } from "../installation/transaction/index.js";
 import { CLI_VERSION } from "../identity.js";
@@ -57,7 +60,14 @@ export interface ApplyInitResult {
 }
 
 export class InitCommandError extends Error {
-  readonly code: "INVALID_INPUT" | "ALREADY_INSTALLED" | "NO_INSTALLABLE_FILES" | "APPROVAL_MISMATCH" | "SNAPSHOT_LIMIT";
+  readonly code:
+    | "INVALID_INPUT"
+    | "ALREADY_INSTALLED"
+    | "INCOMPLETE_INSTALLATION"
+    | "NO_INSTALLABLE_FILES"
+    | "APPROVAL_MISMATCH"
+    | "SNAPSHOT_LIMIT";
+
   constructor(code: InitCommandError["code"], message: string, options?: ErrorOptions) {
     super(message, options);
     this.name = "InitCommandError";
@@ -84,11 +94,21 @@ export async function prepareInit(options: PrepareInitOptions = {}): Promise<Pre
 
   const inspection = await inspectTarget(options.targetPath ?? ".", options.cwd ? { cwd: options.cwd } : {});
   const targetRoot = inspection.target.canonicalPath;
-  const existingManifest = await readInstallationManifest(targetRoot);
-  if (existingManifest) {
+  const installationState = await inspectInstallationState(targetRoot);
+
+  if (installationState.status === "installed") {
+    const { manifest } = installationState;
+
     throw new InitCommandError(
       "ALREADY_INSTALLED",
-      `Pitcrew is already installed here (template '${existingManifest.templateId}', installed ${existingManifest.installedAt}). Use the lifecycle update command when it becomes available; init will not replace an existing installation.`,
+      `Pitcrew is already installed here (template '${manifest.templateId}', installed ${manifest.installedAt}). Use the lifecycle update command when it becomes available; init will not replace an existing installation.`,
+    );
+  }
+
+  if (installationState.status === "incomplete") {
+    throw new InitCommandError(
+      "INCOMPLETE_INSTALLATION",
+      "An existing .agent-workflow directory has no valid installation manifest. Pitcrew cannot safely determine its ownership or installation state. Inspect it manually before running init again. No files were changed.",
     );
   }
 

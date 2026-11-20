@@ -74,6 +74,17 @@ export interface PreparedInstallationArtifacts {
   readonly manifest: InstallationManifest;
 }
 
+export type InstallationState =
+  | { readonly status: "not-installed" }
+  | {
+      readonly status: "incomplete";
+      readonly reason: "manifest-missing";
+    }
+  | {
+      readonly status: "installed";
+      readonly manifest: InstallationManifest;
+    };
+
 /**
  * Prepare the manifest and baseline files as ordinary operations in the same
  * install plan. This function is pure; only applyInstallPlan may write them.
@@ -416,14 +427,23 @@ export function prepareInstallationArtifacts(
   return deepFreeze({ plan: augmentedPlan, files: artifactFiles, manifest });
 }
 
-/** Return undefined only when no manifest exists; malformed or unsafe state throws. */
-export async function readInstallationManifest(
+/**
+ * Inspect installation metadata without modifying the target.
+ *
+ * An existing metadata directory without a manifest is incomplete state,
+ * not a fresh installation.
+ */
+export async function inspectInstallationState(
   targetRoot: string,
-): Promise<InstallationManifest | undefined> {
+): Promise<InstallationState> {
   const root = await verifyCanonicalRoot(targetRoot);
   const metadataDirectory = join(root, ".agent-workflow");
   const directoryInfo = await pathInfo(metadataDirectory);
-  if (!directoryInfo) return undefined;
+
+  if (!directoryInfo) {
+    return Object.freeze({ status: "not-installed" });
+  }
+
   if (directoryInfo.isSymbolicLink() || !directoryInfo.isDirectory()) {
     throw new ManifestStorageError(
       "UNSAFE_PATH",
@@ -433,19 +453,30 @@ export async function readInstallationManifest(
 
   const manifestPath = join(root, ...INSTALLATION_MANIFEST_PATH.split("/"));
   const info = await pathInfo(manifestPath);
-  if (!info) return undefined;
-  if (info.isSymbolicLink() || !info.isFile())
+
+  if (!info) {
+    return Object.freeze({
+      status: "incomplete",
+      reason: "manifest-missing",
+    });
+  }
+
+  if (info.isSymbolicLink() || !info.isFile()) {
     throw new ManifestStorageError(
       "UNSAFE_PATH",
       "Installation manifest must be a regular file, not a symlink or special file.",
     );
-  if (info.size > MAX_MANIFEST_BYTES)
+  }
+
+  if (info.size > MAX_MANIFEST_BYTES) {
     throw new ManifestStorageError(
       "MANIFEST_TOO_LARGE",
       "Installation manifest exceeds the 2 MiB size limit.",
     );
+  }
 
   let raw: string;
+
   try {
     raw = await readFile(manifestPath, "utf8");
   } catch (error) {
@@ -456,13 +487,16 @@ export async function readInstallationManifest(
       { cause: error },
     );
   }
-  if (Buffer.byteLength(raw, "utf8") > MAX_MANIFEST_BYTES)
+
+  if (Buffer.byteLength(raw, "utf8") > MAX_MANIFEST_BYTES) {
     throw new ManifestStorageError(
       "MANIFEST_TOO_LARGE",
       "Installation manifest exceeds the 2 MiB size limit.",
     );
+  }
 
   let parsedJson: unknown;
+
   try {
     parsedJson = JSON.parse(raw) as unknown;
   } catch (error) {
@@ -473,14 +507,35 @@ export async function readInstallationManifest(
       { cause: error },
     );
   }
+
   const result = installationManifestSchema.safeParse(parsedJson);
-  if (!result.success)
+
+  if (!result.success) {
     throw new ManifestStorageError(
       "MANIFEST_INVALID",
       "Installation manifest does not match the supported schema.",
       { issues: result.error.issues },
     );
-  return deepFreeze(result.data);
+  }
+
+  return deepFreeze({
+    status: "installed" as const,
+    manifest: result.data,
+  });
+}
+
+/**
+ * Compatibility reader for callers that only need a manifest.
+ *
+ * Returns undefined when no manifest file exists, including incomplete
+ * metadata state. Lifecycle orchestration should use inspectInstallationState.
+ */
+export async function readInstallationManifest(
+  targetRoot: string,
+): Promise<InstallationManifest | undefined> {
+  const state = await inspectInstallationState(targetRoot);
+
+  return state.status === "installed" ? state.manifest : undefined;
 }
 
 /** Read and verify one managed baseline. Non-managed records are never eligible. */

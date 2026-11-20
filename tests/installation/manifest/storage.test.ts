@@ -16,6 +16,7 @@ import type {
 } from "../../../src/planning/types.js";
 import type { RenderedTemplate } from "../../../src/templates/renderer/types.js";
 import {
+  inspectInstallationState,
   INSTALLATION_BASELINES_DIRECTORY,
   INSTALLATION_MANIFEST_PATH,
   ManifestStorageError,
@@ -389,5 +390,46 @@ describe("manifest and baseline readers", () => {
         classification: "user-config",
       } as never),
     ).rejects.toMatchObject({ code: "BASELINE_INVALID" });
+  });
+  it("distinguishes a fresh project from incomplete metadata", async () => {
+    const freshRoot = await makeRoot();
+
+    await expect(inspectInstallationState(freshRoot)).resolves.toEqual({
+      status: "not-installed",
+    });
+
+    const incompleteRoot = await makeRoot();
+    await mkdir(join(incompleteRoot, ".agent-workflow"));
+
+    await expect(inspectInstallationState(incompleteRoot)).resolves.toEqual({
+      status: "incomplete",
+      reason: "manifest-missing",
+    });
+
+    await expect(
+      readInstallationManifest(incompleteRoot),
+    ).resolves.toBeUndefined();
+  });
+
+  it("reports a valid manifest as an installed state", async () => {
+    const root = await makeRoot();
+    const prepared = prepare(root);
+
+    await mkdir(join(root, ".agent-workflow", "baselines", "docs"), {
+      recursive: true,
+    });
+
+    await writeFile(
+      join(root, ...INSTALLATION_MANIFEST_PATH.split("/")),
+      prepared.files[INSTALLATION_MANIFEST_PATH]!,
+    );
+
+    const state = await inspectInstallationState(root);
+
+    expect(state.status).toBe("installed");
+
+    if (state.status === "installed") {
+      expect(state.manifest.templateId).toBe("core");
+    }
   });
 });
