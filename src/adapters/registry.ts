@@ -19,7 +19,7 @@ const adapters: readonly AdapterDefinition[] = [
       },
       subagents: {
         targetSupport: "supported",
-        integration: { status: "notImplemented" },
+        integration: { status: "native" },
       },
       commands: {
         targetSupport: "supported",

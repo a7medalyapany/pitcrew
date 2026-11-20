@@ -60,6 +60,22 @@ function makeSkillInput(): AdapterPlanningInput & {
   };
 }
 
+
+function makeAgentInput(): AdapterPlanningInput & { readonly renderInput: RenderTemplateInput } {
+  const agent = {
+    id: "code-reviewer-agent", kind: "agent" as const, capabilities: ["subagents"] as const,
+    scope: { type: "adapter" as const, adapterId: "claude" as const },
+    source: { type: "file" as const, path: "agents/code-reviewer.md" },
+  };
+  const template = { id: "test-template", name: "Test template", description: "Claude subagent fixture", version: "1.0.0", assets: [agent] };
+  const index = { schemaVersion: 1 as const, templateId: template.id, templateVersion: template.version,
+    entries: [{ assetId: agent.id, destination: "agents/code-reviewer.md", minimumProfile: "minimal" as const, ownership: "managed" as const }] };
+  const sources = { "agents/code-reviewer.md": "---\nname: code-reviewer\ndescription: Reviews code and reports actionable findings.\ntools: Read, Grep, Glob\n---\n\nReview code and report findings only. Never modify files or run commands.\n" };
+  const context = { platform: "linux" as const };
+  return { profile: "standard", template, index, existing: { entries: [] }, context,
+    renderInput: { template, index, profile: "standard", adapters: ["claude"], platform: "linux", project: { name: "Example", summary: "Example project" }, sources } };
+}
+
 function makeInstructionInput(): AdapterPlanningInput & {
   readonly renderInput: RenderTemplateInput;
 } {
@@ -130,8 +146,8 @@ describe("Claude adapter", () => {
       targetSupport: "supported",
       integration: { status: "native" },
     });
+    expect(caps.subagents).toEqual({ targetSupport: "supported", integration: { status: "native" } });
     for (const key of [
-      "subagents",
       "commands",
       "hooks",
       "permissions",
@@ -506,4 +522,82 @@ describe("Claude adapter", () => {
       ]),
     );
   });
+
+  it("plans Claude-only subagents under .claude/agents", () => {
+    const input = makeAgentInput();
+    const plan = claudeAdapter.planFiles(input);
+    expect(plan.files).toEqual([{ assetId: "code-reviewer-agent", source: "agents/code-reviewer.md", destination: ".claude/agents/code-reviewer.md", ownership: "managed" }]);
+    expect(claudeAdapter.validate({ files: plan.files, context: input.context }).errors).toEqual([]);
+  });
+  it("renders the agent as a Claude-scoped native file", () => {
+    const input = makeAgentInput();
+    expect(claudeAdapter.render(input.renderInput).files).toEqual([expect.objectContaining({
+      assetId: "code-reviewer-agent", destination: ".claude/agents/code-reviewer.md", scope: "adapter", adapterId: "claude", ownership: "managed",
+    })]);
+  });
+  it("does not plan shared or other-adapter agents", () => {
+    const input = makeAgentInput();
+    const shared = { ...input.template.assets[0]!, id: "shared-agent", source: { type: "file" as const, path: "agents/shared.md" }, scope: { type: "shared" as const } };
+    const codex = { ...input.template.assets[0]!, id: "codex-agent", source: { type: "file" as const, path: "agents/codex.md" }, scope: { type: "adapter" as const, adapterId: "codex" as const } };
+    const template = { ...input.template, assets: [...input.template.assets, shared, codex] };
+    const index = { ...input.index, entries: [...input.index.entries,
+      { ...input.index.entries[0]!, assetId: shared.id, destination: "agents/shared.md" },
+      { ...input.index.entries[0]!, assetId: codex.id, destination: "agents/codex.md" }] };
+    expect(claudeAdapter.planFiles({ ...input, template, index }).files.map((f) => f.assetId)).toEqual(["code-reviewer-agent"]);
+  });
+  it("filters Claude subagents by profile and platform", () => {
+    const input = makeAgentInput();
+    const profileExcluded = { ...input.renderInput, profile: "minimal" as const, index: { ...input.renderInput.index, entries: input.renderInput.index.entries.map((entry) => ({ ...entry, minimumProfile: "standard" as const })) } };
+    const platformExcluded = { ...input.renderInput, index: { ...input.renderInput.index, entries: input.renderInput.index.entries.map((entry) => ({ ...entry, platforms: ["windows"] as const })) } };
+    expect(claudeAdapter.render(profileExcluded).files).toEqual([]);
+    expect(claudeAdapter.render(platformExcluded).files).toEqual([]);
+  });
+  it("rejects invalid agent destinations, ownership, and duplicate destinations", () => {
+    const input = makeAgentInput(), proposal = claudeAdapter.planFiles(input).files[0]!;
+    expect(claudeAdapter.validate({ files: [{ ...proposal, destination: "../outside" }], context: input.context }).errors).toEqual(expect.arrayContaining([expect.objectContaining({ code: "INVALID_CLAUDE_AGENT_DESTINATION" })]));
+    expect(claudeAdapter.validate({ files: [{ ...proposal, ownership: "shared-entrypoint" }], context: input.context }).errors).toEqual(expect.arrayContaining([expect.objectContaining({ code: "INVALID_CLAUDE_AGENT_OWNERSHIP" })]));
+    expect(claudeAdapter.validate({ files: [proposal, { ...proposal, assetId: "other", source: "agents/other.md" }], context: input.context }).errors).toEqual(expect.arrayContaining([expect.objectContaining({ code: "DUPLICATE_CLAUDE_DESTINATION" })]));
+  });
+  it("rejects non-canonical and invalid agent source names during planning", () => {
+    const input = makeAgentInput();
+    for (const source of ["agents/Invalid_Name.md", "agents/nested/reviewer.md", "agents/../reviewer.md"]) {
+      const asset = { ...input.template.assets[0]!, id: "bad-agent", source: { type: "file" as const, path: source } };
+      const template = { ...input.template, assets: [asset] };
+      const index = { ...input.index, entries: [{ ...input.index.entries[0]!, assetId: asset.id, destination: source }] };
+      const plan = claudeAdapter.planFiles({ ...input, template, index });
+      expect(plan.files).toEqual([]);
+      expect(plan.warnings).toEqual(expect.arrayContaining([expect.objectContaining({ code: "UNSUPPORTED_CLAUDE_AGENT_SOURCE" })]));
+    }
+  });
+  it("accepts comma-separated and YAML-list tools only when they equal Read, Grep, Glob", () => {
+    const input = makeAgentInput();
+    for (const tools of ["tools: Read, Grep, Glob", "tools:\n  - Read\n  - Grep\n  - Glob"]) {
+      const content = `---\nname: code-reviewer\ndescription: Reviews code.\n${tools}\n---\n\nReport findings only.\n`;
+      expect(() => claudeAdapter.render({ ...input.renderInput, sources: { "agents/code-reviewer.md": content } })).not.toThrow();
+    }
+  });
+  it("rejects missing, extra, duplicated, or unsafe agent frontmatter fields and empty prompts", () => {
+    const input = makeAgentInput();
+    const invalid = [
+      "---\nname: code-reviewer\ndescription: Reviews code.\n---\n\nPrompt.\n",
+      "---\nname: code-reviewer\ndescription: Reviews code.\ntools: Read, Grep\n---\n\nPrompt.\n",
+      "---\nname: code-reviewer\ndescription: Reviews code.\ntools: Read, Grep, Glob, Bash\n---\n\nPrompt.\n",
+      "---\nname: code-reviewer\ndescription: Reviews code.\ntools: [Read, Read, Glob]\n---\n\nPrompt.\n",
+      "---\nname: code-reviewer\ndescription: Reviews code.\ntools: Read, Grep, Glob\nmodel: sonnet\n---\n\nPrompt.\n",
+      "---\nname: code-reviewer\ndescription: Reviews code.\ntools: Read, Grep, Glob\nhooks: {}\n---\n\nPrompt.\n",
+      "---\nname: code-reviewer\ndescription: Reviews code.\ntools: Read, Grep, Glob\nmcpServers: {}\n---\n\nPrompt.\n",
+      "---\nname: code-reviewer\ndescription: Reviews code.\ntools: Read, Grep, Glob\npermissionMode: bypassPermissions\n---\n\nPrompt.\n",
+      "---\nname: code-reviewer\ndescription: [broken\ntools: Read, Grep, Glob\n---\n\nPrompt.\n",
+      "---\nname: code-reviewer\ndescription: Reviews code.\ntools: &allowed [Read, Grep, Glob]\nextra: *allowed\n---\n\nPrompt.\n",
+      "---\nname: code-reviewer\nname: code-reviewer\ndescription: Reviews code.\ntools: Read, Grep, Glob\n---\n\nPrompt.\n",
+      "---\nname: code-reviewer\ndescription: Reviews code.\ntools: Read, Grep, Glob\n---\n   \n",
+    ];
+    for (const content of invalid) expect(() => claudeAdapter.render({ ...input.renderInput, sources: { "agents/code-reviewer.md": content } })).toThrow(/must contain valid name, description, and read-only tools frontmatter/);
+  });
+  it("does not invent bundled Claude agents", async () => {
+    const bundled = await loadBundledTemplate();
+    const plan = claudeAdapter.planFiles({ profile: "standard", template: bundled.template, index: bundled.index, existing: { entries: [] }, context: { platform: "linux" } });
+    expect(plan.files.some((file) => file.destination.startsWith(".claude/agents/"))).toBe(false);
+  });
+
 });
