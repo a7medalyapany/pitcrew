@@ -4,7 +4,18 @@ Pitcrew is a local-first, adapter-based CLI for installing and maintaining a por
 
 ## Project status
 
-Pitcrew is in early development. M2.7 `init` and M3.1 Generic, M3.2 Codex, and M3.3 OpenCode runtime adapters are verified locally and in hosted CI. Codex and OpenCode share the root `AGENTS.md` entrypoint. Codex maps canonical skill directories to project-local `.agents/skills/`; OpenCode maps them to `.opencode/skills/`. No universal skill content is bundled yet. Claude Code and later lifecycle commands remain future work. Review every preview and approve each exact file destination before applying; existing user content is preserved.
+Pitcrew is in early development. The initial install workflow (M2.7) and all four runtime adapters are implemented:
+
+- **Generic:** provides `AI_WORKFLOW.md` as a manual-discovery fallback.
+- **Codex:** uses shared `AGENTS.md` and supports native project-local skills under `.agents/skills/`.
+- **OpenCode:** uses shared `AGENTS.md` and supports native project-local skills under `.opencode/skills/`.
+- **Claude Code:** uses `CLAUDE.md` referencing shared `AGENTS.md`, native skills under `.claude/skills/`, and read-only subagents under `.claude/agents/`.
+
+Adapter compatibility and destination collision coverage are implemented and tested.
+
+No universal skill or subagent content is bundled yet. Claude commands, hooks, permissions, settings, MCP configuration, and global configuration are not installed or modified. Update and uninstall lifecycle commands remain future work.
+
+Pitcrew preserves existing user content and requires review of the installation preview and exact destination approvals before applying changes.
 
 ## Design principles
 

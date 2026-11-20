@@ -29,6 +29,10 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 | M3.1      | Implement generic adapter                            | Done   | Adds the manual-discovery `AI_WORKFLOW.md` entrypoint through the shared planner and transaction, preserving existing content. Local verification: 26 files/176 tests; hosted CI run `44205268257` passed 9/9.                                                                                                                        |
 | M3.2      | Implement Codex adapter                              | Done   | Uses shared `AGENTS.md`; maps canonical skill directories to project-local `.agents/skills/`; does not create global config or invent skill content. Local verification: 28 files/190 tests, typecheck, build, and diff check passed; hosted CI run `44212149205` passed 9/9 matrix jobs. Disposable install verification passed.     |
 | M3.3      | Implement OpenCode adapter                           | Done   | Uses shared `AGENTS.md`; maps canonical skill directories to project-local `.opencode/skills/`; preserves OpenCode project config and existing `.opencode/` content. Local verification: 30 files/208 tests, typecheck, build, and diff check passed; hosted CI reported passed by user. Disposable real-install verification passed. |
+| M3.4.1    | Claude Code root instructions                        | Done   | Adds project-local `CLAUDE.md` referencing shared `AGENTS.md`; existing entrypoints are preserved.                                                                                                                                                                                                                                    |
+| M3.4.2    | Claude Code native skills                            | Done   | Maps canonical skills to `.claude/skills/`; validates bounded YAML frontmatter and preserves supporting files.                                                                                                                                                                                                                        |
+| M3.4.3    | Claude Code read-only subagents                      | Done   | Maps Claude-only agents to `.claude/agents/`; strictly allows only `Read`, `Grep`, and `Glob`.                                                                                                                                                                                                                                        |
+| M3.5      | Adapter compatibility and collision tests            | Done   | Tests all 15 non-empty adapter combinations, selection-order independence, duplicate destinations, case-insensitive collisions, and file/directory overlaps.                                                                                                                                                                          |
 
 There is no M1.6 in the original specification. The renderer is M1.4, and template validation tests are M1.5.
 
@@ -157,7 +161,40 @@ The OpenCode adapter uses the shared root `AGENTS.md` entrypoint and maps canoni
 - **Unverified behavior:** no universal skill asset exists yet, so installation of actual bundled skill content is intentionally not demonstrated. Skill mapping and validation are covered with synthetic adapter tests.
 - **Remaining known risk:** the previously documented narrow filesystem TOCTOU limitation remains outside this adapter milestone.
 
-The OpenCode adapter milestone is complete. The next original roadmap task is M3.4, Claude Code adapter.
+## M3.4 Claude Code implementation boundary
+
+The Claude adapter uses a project-local `CLAUDE.md` entrypoint that references the shared root `AGENTS.md`, avoiding duplicated workflow instructions.
+
+Canonical skill directory assets map to `.claude/skills/<skill-name>/`. Skill names and source paths are strictly validated. `SKILL.md` frontmatter must contain a matching name and a non-empty description. Supporting files are preserved.
+
+Claude-only subagent assets map to `.claude/agents/<agent-name>.md`. Subagent frontmatter is restricted to `name`, `description`, and `tools`. The tools allowlist must contain exactly `Read`, `Grep`, and `Glob`. A non-empty Markdown prompt body is required.
+
+The adapter does not install commands, hooks, permissions, settings, MCP configuration, or global Claude configuration. Existing user-owned files and Claude configuration are preserved. No universal skills or agents are bundled.
+
+### M3.4 verification record
+
+- M3.4.1 local verification — user-reported: typecheck, 218 tests, and build passed.
+- M3.4.2 local verification — user-reported: typecheck, 229 tests, and build passed.
+- M3.4.3 local verification — user-reported: typecheck, 238 tests, and build passed.
+- Hosted CI — user-reported passed after the M3.4.3 commit and subsequent test-timeout adjustment. Do not attribute an independently verified workflow run to these changes without its run record.
+- Known limitation: the read-only tool allowlist restricts Claude Code's available tools; it is not a complete security boundary against the surrounding environment.
+
+## M3.5 adapter compatibility and collision testing
+
+Compatibility coverage exercises every non-empty combination of Claude, Codex, OpenCode, and Generic adapters.
+
+The tests verify unique rendered destinations, shared entrypoint behavior, adapter-scoped output ownership, unique approval paths, and independence of native adapter output from selection order.
+
+Planner collision tests verify rejection of exact duplicate destinations, case-insensitive destination collisions, and file/directory overlaps across adapters.
+
+### M3.5 verification record
+
+- Local verification — user-reported on 2026-11-20: `git diff --check`, `pnpm typecheck`, `pnpm test` (33 test files, 257 tests), and `pnpm build` passed.
+- Fixture verification — user-reported: `git diff --exit-code -- fixtures/landing-main/` passed.
+- Commit: `2253c34465be16cce98e1f24782fb38539dd937b`.
+- Hosted CI: not independently verified through the available commit-status lookup.
+
+The OpenCode adapter milestone is complete. Claude Code support is complete under M3.4, and adapter compatibility testing is complete under M3.5.
 
 ## Non-negotiable implementation boundaries
 

@@ -308,7 +308,6 @@ The template test coverage includes core content, template types, index schema/v
 - **Local verification — user-reported on 2026-11-17:** `pnpm typecheck` passed; `pnpm test` passed with 21 test files and 155 tests; `pnpm build` passed.
 - **Hosted CI — observed on GitHub Actions, 2026-11-17:** run `44190732268`, commit `37e40e8347ad035c06136b39d40981dd001a6112`, completed successfully with all 9 matrix jobs passing across Ubuntu, macOS, and Windows on Node.js 22, 24, and 26.
 
-
 ## 2026-11-17 — M2.7 `init` command orchestration
 
 **Status: Done**
@@ -341,40 +340,52 @@ The template test coverage includes core content, template types, index schema/v
 
 ## Original roadmap status
 
-| Milestone | Original scope                               | Status                                                                            |
-| --------- | -------------------------------------------- | --------------------------------------------------------------------------------- |
-| M0.1      | Repository foundation                        | Done                                                                              |
-| M0.2      | Config, manifest, and template-index schemas | Done                                                                              |
-| M0.3      | Adapter interface and capability vocabulary  | Done                                                                              |
-| M0.4      | Linux/macOS/Windows CI matrix                | Done; 9/9 hosted jobs passed                                                      |
-| M1.1      | Universal workflow documents                 | Done                                                                              |
-| M1.2      | Workflow profiles                            | Done                                                                              |
-| M1.3      | Template index loader and validator          | Done                                                                              |
-| M1.4      | Safe placeholder renderer                    | Done                                                                              |
-| M1.5      | Template validation tests                    | Done                                                                              |
-| M2.1      | Target path and Git-state inspection         | Done; local verification and 9/9 hosted CI jobs passed                            |
-| M2.2      | Read-only project detection                  | Done; local verification and 9/9 hosted CI jobs passed                            |
-| M2.3      | Install plan and conflict classifier         | Done; local verification and 9/9 hosted CI jobs passed                            |
-| M2.4      | Dry-run preview                              | Done; local verification passed (18 files/126 tests)                              |
-| M2.5      | Atomic filesystem transaction                | Done; local verification passed (19 files/134 tests); hosted CI passed (9/9 jobs) |
-| M2.6      | Installation manifest and baseline storage   | Done; local verification passed (21 files/155 tests); hosted CI passed (9/9 jobs) |
-| M2.7      | `init` command                              | Done; local verification passed (24 files/164 tests); hosted CI passed (9/9 jobs) |
-| M3.1      | Generic adapter                             | Done; local verification passed (26 files/176 tests); hosted CI run `44205268257` passed 9/9 |
-| M3.2      | Codex adapter                                | Done; local verification passed (28 files/190 tests, typecheck, build, diff check); hosted CI run `44212149205` passed 9/9; disposable install verification passed |
+| Milestone | Original scope                               | Status                                                                                                                               |
+| --------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| M0.1      | Repository foundation                        | Done                                                                                                                                 |
+| M0.2      | Config, manifest, and template-index schemas | Done                                                                                                                                 |
+| M0.3      | Adapter interface and capability vocabulary  | Done                                                                                                                                 |
+| M0.4      | Linux/macOS/Windows CI matrix                | Done; 9/9 hosted jobs passed                                                                                                         |
+| M1.1      | Universal workflow documents                 | Done                                                                                                                                 |
+| M1.2      | Workflow profiles                            | Done                                                                                                                                 |
+| M1.3      | Template index loader and validator          | Done                                                                                                                                 |
+| M1.4      | Safe placeholder renderer                    | Done                                                                                                                                 |
+| M1.5      | Template validation tests                    | Done                                                                                                                                 |
+| M2.1      | Target path and Git-state inspection         | Done; local verification and 9/9 hosted CI jobs passed                                                                               |
+| M2.2      | Read-only project detection                  | Done; local verification and 9/9 hosted CI jobs passed                                                                               |
+| M2.3      | Install plan and conflict classifier         | Done; local verification and 9/9 hosted CI jobs passed                                                                               |
+| M2.4      | Dry-run preview                              | Done; local verification passed (18 files/126 tests)                                                                                 |
+| M2.5      | Atomic filesystem transaction                | Done; local verification passed (19 files/134 tests); hosted CI passed (9/9 jobs)                                                    |
+| M2.6      | Installation manifest and baseline storage   | Done; local verification passed (21 files/155 tests); hosted CI passed (9/9 jobs)                                                    |
+| M2.7      | `init` command                               | Done; local verification passed (24 files/164 tests); hosted CI passed (9/9 jobs)                                                    |
+| M3.1      | Generic adapter                              | Done; local verification passed (26 files/176 tests); hosted CI run `44205268257` passed 9/9                                         |
+| M3.2      | Codex adapter                                | Done; local verification passed (28 files/190 tests); hosted CI run `44212149205` passed 9/9; disposable install verification passed |
+| M3.3      | OpenCode adapter                             | Done; local verification passed (30 files/208 tests); hosted CI user-reported; disposable install verification passed                |
+| M3.4.1    | Claude Code root instructions                | Done; local verification passed (218 tests)                                                                                          |
+| M3.4.2    | Claude Code native skills                    | Done; local verification passed (229 tests)                                                                                          |
+| M3.4.3    | Claude Code read-only subagents              | Done; local verification passed (238 tests); hosted CI user-reported after timeout adjustment                                        |
+| M3.5      | Adapter compatibility and collision tests    | Done; local verification passed (33 files/257 tests); commit `2253c34465be16cce98e1f24782fb38539dd937b`                              |
 
 There is no M1.6 in the original specification. M1.4 is the renderer and M1.5 is template validation tests.
 
 ## Current implementation boundaries
 
-The following remain intentionally unimplemented:
+The following remain intentionally unimplemented or limited:
 
-- Claude Code adapter generation and later lifecycle commands. Codex and OpenCode root instructions and skill destination mappings are implemented; no universal skill content is bundled yet.
-- Update and uninstall behavior.
-- A general multi-adapter destination-variant schema; current Codex skill mapping is an explicit runtime adapter mapping from canonical skill directories.
-- Hooks, permission changes, and MCP configuration installation.
+- **Lifecycle operations:** update and uninstall behavior are not implemented. The current `init` flow detects an existing installation and refuses to treat it as a fresh install.
+- **Interactive CLI experience:** interactive prompts and non-interactive required-field validation remain M5.2 work.
+- **Universal skill and agent content:** adapters can map and validate supported canonical skill/agent assets, but no universal skill or subagent content is currently bundled.
+- **Claude Code deferred capabilities:** custom commands, hooks, permissions, `.claude/settings.json`, MCP configuration, and global Claude configuration are not installed or modified.
+- **Codex deferred capabilities:** subagents, commands, hooks, permissions, MCP configuration, and global/user configuration are not installed or modified by the Codex adapter.
+- **OpenCode deferred capabilities:** custom agents, commands, hooks, permission changes, MCP configuration, and global configuration are not installed or modified by the OpenCode adapter.
+- **Generic limitations:** Generic provides a manual-discovery root instruction fallback; it does not claim native integration with a specific AI coding tool.
+- **Destination variants:** a general multi-adapter destination-variant schema remains deferred. Current native skill mappings are explicit runtime adapter mappings from canonical skill directories.
+- **Filesystem concurrency:** a narrow time-of-check/time-of-use race remains if a hostile concurrent process swaps a parent directory between validation and filesystem operations. Current revalidation and atomic operations reduce risk but do not establish protection against hostile concurrent filesystem mutation.
+- **Transaction test coverage:** deterministic injected mid-transaction failure coverage remains a known test-coverage gap.
 
-The M2.7 init flow is usable for the shared core workflow and the Generic fallback; M3.1 adds Generic runtime integration, M3.2 adds Codex runtime integration, and M3.3 adds OpenCode runtime integration. The next adapter milestone is M3.4 Claude Code, followed by M3.5 adapter compatibility and collision tests. Lifecycle commands remain in M4. The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
+The initial install workflow is implemented. M3.1 adds Generic runtime integration, M3.2 adds Codex runtime integration, M3.3 adds OpenCode runtime integration, and M3.4 adds Claude Code integration. M3.5 adds cross-adapter compatibility and destination-collision coverage.
 
+The `landing-main` project remains a local reference fixture and is not part of the template catalog or distributable package.
 
 ## 2026-11-18 — M3.1 Generic adapter
 
@@ -402,7 +413,6 @@ The M2.7 init flow is usable for the shared core workflow and the Generic fallba
 
 - **Local verification — user-reported on 2026-11-18:** `pnpm typecheck` passed; `pnpm test` passed with 26 test files and 176 tests; `pnpm build` passed. The CLI dry-run preview was also exercised and confirmed to preserve existing user-owned files.
 - **Hosted CI — observed on GitHub Actions, 2026-11-18:** run `44205268257`, commit `2c44f2455acef52a7c353b2651053eb639ae1a3b`, completed successfully with all 9 matrix jobs passing across Ubuntu, macOS, and Windows on Node.js 22, 24, and 26.
-
 
 ## 2026-11-18 — M3.2 Codex adapter
 
@@ -465,3 +475,135 @@ The M2.7 init flow is usable for the shared core workflow and the Generic fallba
 - **Disposable installation verification — user-reported on 2026-11-18:** a real CLI install into a fresh temporary project applied 23 approved files and committed the transaction; config and manifest JSON parsed successfully; existing `opencode.json`, `opencode.jsonc`, and `.opencode/notes.md` were preserved; no `.opencode/skills/` directory was created because no canonical skill assets are bundled.
 - **Unverified behavior:** no universal skill asset exists yet, so installation of actual bundled skill content is intentionally not demonstrated. Skill mapping and validation are covered with synthetic adapter tests.
 - **Remaining known risk:** the previously documented narrow filesystem TOCTOU limitation remains outside this adapter milestone.
+
+## 2026-11-20 — M3.4.1 Claude Code root instructions
+
+**Status: Done**
+
+### Implementation
+
+- Added the Claude Code runtime adapter and registered it in the adapter registry.
+- Added a project-local `CLAUDE.md` root instruction entrypoint.
+- The generated `CLAUDE.md` references the shared root `AGENTS.md` rather than duplicating the canonical workflow instructions.
+- Existing user-owned `CLAUDE.md` files are not overwritten. Existing entrypoints require manual integration through the planner's ownership/conflict handling.
+- Claude root-instruction capability is reported as native.
+- No Claude settings, global configuration, hooks, permissions, MCP configuration, skills, or subagents were added in this sub-milestone.
+
+### Verification
+
+- **Local verification — user-reported:** `pnpm typecheck`, `pnpm test` (32 test files/218 tests), `pnpm build`, and `git diff --check` passed.
+- **Fixture verification — user-reported:** `fixtures/landing-main/` remained unchanged.
+
+## 2026-11-20 — M3.4.2 Claude Code native skills
+
+**Status: Done**
+
+### Implementation
+
+- Added native Claude Code skill mapping from canonical skill directory assets to `.claude/skills/<skill-name>/`.
+- Supports shared and Claude-specific canonical skill assets while filtering by selected profile and platform.
+- Preserves the full skill directory, including `SKILL.md` and supporting files.
+- Validates the canonical source path and native destination path, skill directory name, and `SKILL.md` frontmatter.
+- Requires a matching lowercase kebab-case `name` and a non-empty string `description`.
+- Hardened frontmatter parsing with bounded input, YAML 1.2/core parsing, unique-key validation, a single-document requirement, and disabled aliases.
+- Rejects malformed YAML, duplicate keys, invalid names, mismatched names, empty descriptions, and invalid source/destination paths.
+- Does not invent or bundle universal skills. No empty `.claude/skills/` directory is generated when no canonical skills exist.
+- Claude skill capability is reported as native.
+
+### Safety and scope boundaries
+
+- Skill assets are rendered through the shared renderer and proposed through the adapter contract. The adapter itself does not write files, execute commands, or access the network.
+- Existing skill directories and files remain subject to the core planner's conflict and approval rules.
+- The adapter does not modify global Claude configuration or project settings.
+- No custom commands, hooks, permissions, settings, or MCP configuration are included.
+
+### Verification
+
+- **Local verification — user-reported:** `pnpm typecheck`, `pnpm test` (32 test files/229 tests), `pnpm build`, and `git diff --check` passed.
+- **Fixture verification — user-reported:** `fixtures/landing-main/` remained unchanged.
+- **Commit:** `bcef805bf55569237a9c5b61c682ba8b4b693560` (`feat(claude): add native skills support`).
+- **Hosted CI — user-reported:** hosted CI passed. The available workflow lookup did not independently expose the run details.
+
+## 2026-11-20 — M3.4.3 Claude Code read-only subagents
+
+**Status: Done**
+
+### Implementation
+
+- Added Claude-only canonical agent assets using `agents/<agent-name>.md`.
+- Maps agent assets to `.claude/agents/<agent-name>.md`.
+- Requires lowercase kebab-case agent names, maximum 64 characters, matching the canonical filename.
+- Requires frontmatter containing exactly `name`, `description`, and `tools`.
+- Requires a matching agent name, a non-empty description, and a non-empty Markdown prompt body.
+- Accepts the tools allowlist as either a comma-separated string or YAML list.
+- Restricts the tools allowlist to exactly `Read`, `Grep`, and `Glob`.
+- Rejects extra frontmatter fields, including fields that could broaden agent behavior or introduce other configuration, such as `Bash`, `Write`, `Edit`, `model`, `permissionMode`, `disallowedTools`, `mcpServers`, and `hooks`.
+- Reuses the bounded YAML frontmatter validation approach established for Claude skills.
+- Applies profile/platform filtering.
+- Reports Claude subagent capability as native.
+- Does not bundle universal subagents or create an empty `.claude/agents/` directory when no canonical agent assets exist.
+
+### Safety and scope boundaries
+
+- The adapter is declarative and uses the shared planning/rendering flow. It does not execute tools or mutate project files directly.
+- Existing `.claude/` content and user-owned agent files are preserved through the core planner's conflict handling.
+- The `Read`, `Grep`, and `Glob` allowlist restricts the tools exposed to these generated Claude subagents. It is not a complete security boundary against every behavior of the surrounding environment.
+- No custom commands, hooks, permissions, `.claude/settings.json`, MCP configuration, or global Claude configuration is installed or modified.
+- The adapter does not claim that tool allowlisting replaces normal Claude Code permission policies.
+
+### Verification
+
+- **Local verification — user-reported:** `pnpm typecheck`, `pnpm test` (32 test files/238 tests), `pnpm build`, and `git diff --check` passed.
+- **Fixture verification — user-reported:** `git diff --exit-code -- fixtures/landing-main/` passed.
+- **Commit:** `8eec3258ba348a92a37234053d43879ee3ad6583` (`feat(claude): add read-only subagents support`).
+
+### CI timeout adjustment
+
+After the M3.4.3 push, one Ubuntu Node.js 22 CI job reported three integration tests exceeding Vitest's default five-second timeout. The failures were timeout failures in filesystem-heavy integration tests; typecheck and the remaining tests passed.
+
+- Increased the global Vitest test timeout from 5 seconds to 15 seconds in `vitest.config.ts`.
+- The adjustment changes test-runner timing only; it does not change runtime implementation behavior.
+- **Local verification — user-reported:** typecheck, all 238 tests across 32 files, build, and `git diff --check` passed.
+- **Commit:** `24ff7299609946fc112ca7b1e7db19738ed7b0c2` (`test: increase timeout for CI integration tests`).
+- **Hosted CI — user-reported:** the subsequent CI run passed. The available workflow lookup did not independently expose the run details.
+
+## 2026-11-20 — M3.5 Adapter compatibility and collision tests
+
+**Status: Done**
+
+### Implementation
+
+- Added command-level adapter compatibility coverage for all 15 non-empty combinations of Claude, Codex, OpenCode, and Generic.
+- Verifies that combined adapter selections produce unique rendered destinations.
+- Verifies that shared `AGENTS.md` output is emitted once.
+- Verifies that Claude `CLAUDE.md` and Generic `AI_WORKFLOW.md` are emitted only when their respective adapters are selected.
+- Verifies that approval paths are unique and adapter-scoped rendered files belong to selected adapters.
+- Verifies that native adapter-scoped output is independent of adapter selection order. Shared generated configuration is intentionally excluded from this comparison because it records the selected adapter list.
+- Added planner collision tests for:
+  - Exact duplicate destinations proposed by different adapters.
+  - Case-insensitive destination collisions.
+  - File/directory destination overlaps across adapters.
+- Kept the new coverage test-only. No production adapter behavior or fixture files were changed.
+
+### Verification
+
+- **Local verification — user-reported on 2026-11-20:** `git diff --check`, `pnpm typecheck`, `pnpm test` (33 test files/257 tests), and `pnpm build` passed.
+- **Fixture verification — user-reported:** `git diff --exit-code -- fixtures/landing-main/` passed.
+- **Commit:** `2253c34465be16cce98e1f24782fb38539dd937b`.
+- **Hosted CI:** not independently verified through the available commit-status lookup.
+
+### Scope boundaries
+
+- This milestone verifies compatibility and planner collision handling across the current adapter set. It does not claim feature parity between adapters.
+- It does not add new runtime capabilities, bundled skills, bundled agents, lifecycle commands, or configuration integrations.
+- Existing ownership, exact-path approval, planning, and transaction rules remain unchanged.
+
+---
+
+## Current milestone position
+
+M3.1 through M3.5 are complete. The four runtime adapters are registered and integrated into the initial install workflow, with different capability levels and explicit limitations.
+
+The next implementation milestone must be selected from the original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0**. Do not infer or redefine the next milestone from this log alone. Update and uninstall lifecycle work remains unimplemented and must follow the original specification's dependency order.
+
+The `landing-main` fixture remains a local reference project only and must not be modified as part of implementation or documentation work.
