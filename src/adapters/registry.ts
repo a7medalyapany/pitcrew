@@ -15,7 +15,7 @@ const adapters: readonly AdapterDefinition[] = [
       },
       skills: {
         targetSupport: "supported",
-        integration: { status: "notImplemented" },
+        integration: { status: "native" },
       },
       subagents: {
         targetSupport: "supported",

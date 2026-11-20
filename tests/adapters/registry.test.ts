@@ -50,6 +50,7 @@ describe("adapter registry", () => {
 
     const claude = getAdapter("claude")!;
     expect(claude.capabilities.rootInstructions.integration.status).toBe("native");
+    expect(claude.capabilities.skills.integration.status).toBe("native");
 
     const codex = getAdapter("codex")!;
     expect(codex.capabilities.rootInstructions.integration.status).toBe("shared");
@@ -59,7 +60,7 @@ describe("adapter registry", () => {
       for (const [capabilityId, capability] of Object.entries(adapter.capabilities)) {
         if (adapter.id === "generic" && capabilityId === "rootInstructions") continue;
         if (
-          (adapter.id === "claude" && capabilityId === "rootInstructions") ||
+          (adapter.id === "claude" && (capabilityId === "rootInstructions" || capabilityId === "skills")) ||
           ((adapter.id === "codex" || adapter.id === "opencode") &&
             (capabilityId === "rootInstructions" || capabilityId === "skills"))
         ) {
