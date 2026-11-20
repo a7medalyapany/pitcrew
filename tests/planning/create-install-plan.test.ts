@@ -199,6 +199,63 @@ describe("createInstallPlan", () => {
     }))).toThrow("invalid installed hash");
   });
 
+  it("rejects duplicate destinations proposed by different adapters", () => {
+    const claudeFile = file({
+      assetId: "claude-entrypoint",
+      scope: "adapter",
+      adapterId: "claude",
+      destination: "CLAUDE.md",
+    });
+    const codexFile = file({
+      assetId: "codex-entrypoint",
+      scope: "adapter",
+      adapterId: "codex",
+      destination: "CLAUDE.md",
+    });
+
+    expect(() => createInstallPlan(input({ rendered: rendered([claudeFile, codexFile]) }))).toThrow(
+      "duplicate destination paths",
+    );
+  });
+
+  it("rejects case-insensitive destination collisions across adapters", () => {
+    const claudeFile = file({
+      assetId: "claude-agent",
+      scope: "adapter",
+      adapterId: "claude",
+      destination: ".claude/agents/Code-Reviewer.md",
+    });
+    const codexFile = file({
+      assetId: "codex-agent",
+      scope: "adapter",
+      adapterId: "codex",
+      destination: ".claude/agents/code-reviewer.md",
+    });
+
+    expect(() => createInstallPlan(input({ rendered: rendered([claudeFile, codexFile]) }))).toThrow(
+      "duplicate destination paths",
+    );
+  });
+
+  it("rejects file-directory overlaps between adapter outputs", () => {
+    const claudeDirectory = file({
+      assetId: "claude-skill",
+      scope: "adapter",
+      adapterId: "claude",
+      destination: ".claude/skills/review",
+    });
+    const codexFile = file({
+      assetId: "codex-skill-file",
+      scope: "adapter",
+      adapterId: "codex",
+      destination: ".claude/skills/review/SKILL.md",
+    });
+
+    expect(() => createInstallPlan(input({ rendered: rendered([claudeDirectory, codexFile]) }))).toThrow(
+      "file/directory destination overlap",
+    );
+  });
+
   it("produces stable plan IDs and immutable output for identical inputs", () => {
     const first = createInstallPlan(input({ rendered: rendered([file({ destination: "docs/guide.md" })]) }));
     const second = createInstallPlan(input({ rendered: rendered([file({ destination: "docs/guide.md" })]) }));
