@@ -3,22 +3,12 @@ import { lstat, opendir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
 import type { ProjectSnapshotEntry } from "../planning/types.js";
+import { isExcludedDirectoryName, isSensitiveRelativePath } from "./path-policy.js";
 
 const MAX_ENTRIES = 50_000;
 const MAX_DEPTH = 32;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_HASHED_BYTES = 250 * 1024 * 1024;
-const IGNORED_DIRECTORIES = new Set([
-  ".git", "node_modules", "vendor", "dist", "build", "coverage", ".next",
-  ".nuxt", ".output", ".turbo", ".cache", ".pnpm-store", ".venv", "venv",
-  "env", "Pods", "DerivedData", "target", ".ssh", ".aws", ".azure", ".gnupg",
-  ".docker", ".kube", ".terraform", ".pulumi", ".secrets", ".vault",
-  "secrets", "credentials", ".credentials",
-]);
-const SENSITIVE_FILES = new Set([
-  ".npmrc", ".pypirc", ".netrc", ".envrc", "auth.json", "credentials.json", "secrets.json",
-  "id_rsa", "id_ed25519", "credentials", "token",
-]);
 
 export class ProjectSnapshotError extends Error {
   readonly code = "SNAPSHOT_LIMIT_EXCEEDED";
@@ -56,7 +46,7 @@ export async function collectProjectSnapshot(root: string): Promise<ProjectSnaps
     }
     if (info.isDirectory()) {
       entries.push(Object.freeze({ path: current.relativePath, type: "directory" }));
-      if (current.depth >= MAX_DEPTH || IGNORED_DIRECTORIES.has(basename(current.absolutePath))) continue;
+      if (current.depth >= MAX_DEPTH || isExcludedDirectoryName(basename(current.absolutePath))) continue;
       const remaining = MAX_ENTRIES - entries.length - pending.length;
       const children = await readBoundedDirectoryNames(current.absolutePath, remaining);
       for (const child of children) {
@@ -69,10 +59,8 @@ export async function collectProjectSnapshot(root: string): Promise<ProjectSnaps
       continue;
     }
 
-    const fileName = basename(current.absolutePath);
-    const sensitive = SENSITIVE_FILES.has(fileName.toLowerCase()) ||
-      /^\.env(?:\.|$)/i.test(fileName) || /\.(?:pem|key|p12|pfx|tfstate|tfvars|asc)$/i.test(fileName);
-    if (info.isFile() && !sensitive && info.size <= MAX_FILE_BYTES && hashedBytes + info.size <= MAX_HASHED_BYTES) {
+    if (info.isFile() && !isSensitiveRelativePath(current.relativePath) &&
+      info.size <= MAX_FILE_BYTES && hashedBytes + info.size <= MAX_HASHED_BYTES) {
       const bytes = await readFile(current.absolutePath);
       hashedBytes += bytes.byteLength;
       entries.push(Object.freeze({

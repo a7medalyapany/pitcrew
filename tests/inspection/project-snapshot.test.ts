@@ -49,4 +49,20 @@ describe("collectProjectSnapshot", () => {
     expect(snapshot).toContainEqual({ path: "node_modules", type: "directory" });
     expect(snapshot.some((entry) => entry.path.startsWith("node_modules/"))).toBe(false);
   });
+
+  it("applies sensitive-path policy case-insensitively", async () => {
+    const root = await makeRoot();
+    await mkdir(join(root, ".SSH"));
+    await mkdir(join(root, "config"));
+    await writeFile(join(root, ".SSH", "id_rsa"), "private-key-material\n");
+    await writeFile(join(root, "config", ".ENV.LOCAL"), "TOKEN=do-not-read\n");
+    await writeFile(join(root, "config", "server.PEM"), "private-key-material\n");
+
+    const snapshot = await collectProjectSnapshot(root);
+
+    expect(snapshot).toContainEqual({ path: ".SSH", type: "directory" });
+    expect(snapshot.some((entry) => entry.path.startsWith(".SSH/"))).toBe(false);
+    expect(snapshot).toContainEqual({ path: "config/.ENV.LOCAL", type: "other" });
+    expect(snapshot).toContainEqual({ path: "config/server.PEM", type: "other" });
+  });
 });
