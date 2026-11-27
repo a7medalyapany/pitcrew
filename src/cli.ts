@@ -91,7 +91,7 @@ program
       else console.error(`pitcrew init: ${message}`);
       const nodeCode = error instanceof Error && "code" in error ? String(error.code) : "";
       const expectedOperational = error instanceof InitCommandError ||
-        (error instanceof Error && ["TargetInspectionError", "ManifestStorageError", "InstallTransactionError"].includes(error.name)) ||
+        (error instanceof Error && ["TargetInspectionError", "ManifestStorageError", "InstallTransactionError", "SafeFileReadError"].includes(error.name)) ||
         ["EACCES", "EPERM", "ENOENT", "ENOTDIR", "EEXIST"].includes(nodeCode);
       process.exitCode = error instanceof InitCommandError && error.code === "INVALID_INPUT" ? 3
         : error instanceof InitCommandError && (error.code === "APPROVAL_MISMATCH" || error.code === "NO_INSTALLABLE_FILES") ? 2

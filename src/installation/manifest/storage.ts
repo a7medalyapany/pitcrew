@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { lstat, readFile, realpath } from "node:fs/promises";
+import { lstat, realpath } from "node:fs/promises";
+import { createSafeFileReader, SafeFileReadError } from "../../inspection/read-safe-file.js";
 import { isAbsolute, join, resolve } from "node:path";
 import type { AdapterId } from "../../adapters/types.js";
 import type {
@@ -433,95 +434,42 @@ export function prepareInstallationArtifacts(
  * An existing metadata directory without a manifest is incomplete state,
  * not a fresh installation.
  */
-export async function inspectInstallationState(
-  targetRoot: string,
-): Promise<InstallationState> {
+export async function inspectInstallationState(targetRoot: string): Promise<InstallationState> {
   const root = await verifyCanonicalRoot(targetRoot);
   const metadataDirectory = join(root, ".agent-workflow");
   const directoryInfo = await pathInfo(metadataDirectory);
-
-  if (!directoryInfo) {
-    return Object.freeze({ status: "not-installed" });
-  }
-
+  if (!directoryInfo) return Object.freeze({ status: "not-installed" });
   if (directoryInfo.isSymbolicLink() || !directoryInfo.isDirectory()) {
-    throw new ManifestStorageError(
-      "UNSAFE_PATH",
-      "Installation metadata directory must be a real directory.",
-    );
+    throw new ManifestStorageError("UNSAFE_PATH", "Installation metadata directory must be a real directory.");
   }
 
-  const manifestPath = join(root, ...INSTALLATION_MANIFEST_PATH.split("/"));
-  const info = await pathInfo(manifestPath);
-
-  if (!info) {
-    return Object.freeze({
-      status: "incomplete",
-      reason: "manifest-missing",
-    });
-  }
-
-  if (info.isSymbolicLink() || !info.isFile()) {
-    throw new ManifestStorageError(
-      "UNSAFE_PATH",
-      "Installation manifest must be a regular file, not a symlink or special file.",
-    );
-  }
-
-  if (info.size > MAX_MANIFEST_BYTES) {
-    throw new ManifestStorageError(
-      "MANIFEST_TOO_LARGE",
-      "Installation manifest exceeds the 2 MiB size limit.",
-    );
-  }
-
+  const reader = await createSafeFileReader(root);
   let raw: string;
-
   try {
-    raw = await readFile(manifestPath, "utf8");
+    raw = (await reader.read(INSTALLATION_MANIFEST_PATH, MAX_MANIFEST_BYTES)).content.toString("utf8");
   } catch (error) {
-    throw new ManifestStorageError(
-      "MANIFEST_INVALID",
-      "Installation manifest could not be read.",
-      undefined,
-      { cause: error },
-    );
-  }
-
-  if (Buffer.byteLength(raw, "utf8") > MAX_MANIFEST_BYTES) {
-    throw new ManifestStorageError(
-      "MANIFEST_TOO_LARGE",
-      "Installation manifest exceeds the 2 MiB size limit.",
-    );
+    if (error instanceof SafeFileReadError && error.code === "NOT_FOUND") {
+      return Object.freeze({ status: "incomplete", reason: "manifest-missing" });
+    }
+    if (error instanceof SafeFileReadError && error.code === "TOO_LARGE") {
+      throw new ManifestStorageError("MANIFEST_TOO_LARGE", "Installation manifest exceeds the 2 MiB size limit.", undefined, { cause: error });
+    }
+    if (error instanceof SafeFileReadError && (error.code === "UNSAFE_PATH" || error.code === "NOT_REGULAR_FILE")) {
+      throw new ManifestStorageError("UNSAFE_PATH", "Installation manifest must be a regular file reached without symlinks.", undefined, { cause: error });
+    }
+    throw new ManifestStorageError("MANIFEST_INVALID", "Installation manifest could not be read safely.", undefined, { cause: error });
   }
 
   let parsedJson: unknown;
-
-  try {
-    parsedJson = JSON.parse(raw) as unknown;
-  } catch (error) {
-    throw new ManifestStorageError(
-      "MANIFEST_INVALID",
-      "Installation manifest is not valid JSON.",
-      undefined,
-      { cause: error },
-    );
+  try { parsedJson = JSON.parse(raw) as unknown; }
+  catch (error) {
+    throw new ManifestStorageError("MANIFEST_INVALID", "Installation manifest is not valid JSON.", undefined, { cause: error });
   }
-
   const result = installationManifestSchema.safeParse(parsedJson);
-
   if (!result.success) {
-    throw new ManifestStorageError(
-      "MANIFEST_INVALID",
-      "Installation manifest does not match the supported schema.",
-      { issues: result.error.issues },
-    );
+    throw new ManifestStorageError("MANIFEST_INVALID", "Installation manifest does not match the supported schema.", { issues: result.error.issues });
   }
-
-  return deepFreeze({
-    status: "installed" as const,
-    manifest: result.data,
-  });
+  return deepFreeze({ status: "installed" as const, manifest: result.data });
 }
 
 /**
@@ -539,89 +487,30 @@ export async function readInstallationManifest(
 }
 
 /** Read and verify one managed baseline. Non-managed records are never eligible. */
-export async function readManagedBaseline(
-  targetRoot: string,
-  file: InstallationManifestFile,
-): Promise<string> {
+export async function readManagedBaseline(targetRoot: string, file: InstallationManifestFile): Promise<string> {
   if (
-    file.classification !== "managed" ||
-    !file.baselinePath ||
-    !file.baselineHash ||
+    file.classification !== "managed" || !file.baselinePath || !file.baselineHash ||
     !SHA256.test(file.baselineHash) ||
-    file.baselinePath !==
-      `${INSTALLATION_BASELINES_DIRECTORY}/${file.destination}`
+    file.baselinePath !== `${INSTALLATION_BASELINES_DIRECTORY}/${file.destination}`
   ) {
-    throw new ManifestStorageError(
-      "BASELINE_INVALID",
-      "Only managed files with a canonical baseline path can be loaded.",
-      { destination: file.destination },
-    );
+    throw new ManifestStorageError("BASELINE_INVALID", "Only managed files with a canonical baseline path can be loaded.", { destination: file.destination });
   }
   assertSafeRelativePath(file.baselinePath);
   const root = await verifyCanonicalRoot(targetRoot);
-  const segments = file.baselinePath.split("/");
-  let current = root;
-  for (const segment of segments) {
-    current = join(current, segment);
-    const info = await pathInfo(current);
-    if (!info)
-      throw new ManifestStorageError(
-        "BASELINE_INVALID",
-        "Managed baseline is missing.",
-        { path: file.baselinePath },
-      );
-    if (info.isSymbolicLink())
-      throw new ManifestStorageError(
-        "UNSAFE_PATH",
-        "Managed baseline path contains a symbolic link.",
-        { path: file.baselinePath },
-      );
-    if (current !== join(root, ...segments) && !info.isDirectory())
-      throw new ManifestStorageError(
-        "UNSAFE_PATH",
-        "Managed baseline parent is not a directory.",
-        { path: current },
-      );
-    if (current === join(root, ...segments) && !info.isFile())
-      throw new ManifestStorageError(
-        "UNSAFE_PATH",
-        "Managed baseline must be a regular file.",
-        { path: file.baselinePath },
-      );
-  }
-  const baselinePath = join(root, ...segments);
-  const info = await lstat(baselinePath);
-  if (info.size > MAX_BASELINE_BYTES)
-    throw new ManifestStorageError(
-      "BASELINE_INVALID",
-      "Managed baseline exceeds the 10 MiB size limit.",
-      { path: file.baselinePath },
-    );
-  let content: Buffer;
+  const reader = await createSafeFileReader(root);
+  let result;
   try {
-    content = await readFile(baselinePath);
+    result = await reader.read(file.baselinePath, MAX_BASELINE_BYTES);
   } catch (error) {
-    throw new ManifestStorageError(
-      "BASELINE_INVALID",
-      "Managed baseline could not be read.",
-      { path: file.baselinePath },
-      { cause: error },
-    );
+    if (error instanceof SafeFileReadError && (error.code === "UNSAFE_PATH" || error.code === "NOT_REGULAR_FILE")) {
+      throw new ManifestStorageError("UNSAFE_PATH", "Managed baseline path is not a safe regular file.", { path: file.baselinePath }, { cause: error });
+    }
+    throw new ManifestStorageError("BASELINE_INVALID", "Managed baseline is missing or could not be read safely within the 10 MiB limit.", { path: file.baselinePath }, { cause: error });
   }
-  if (content.byteLength > MAX_BASELINE_BYTES)
-    throw new ManifestStorageError(
-      "BASELINE_INVALID",
-      "Managed baseline exceeds the 10 MiB size limit.",
-      { path: file.baselinePath },
-    );
-  if (sha256(content) !== file.baselineHash.toLowerCase()) {
-    throw new ManifestStorageError(
-      "BASELINE_HASH_MISMATCH",
-      "Managed baseline content does not match its recorded SHA-256 hash.",
-      { path: file.baselinePath },
-    );
+  if (result.sha256 !== file.baselineHash.toLowerCase()) {
+    throw new ManifestStorageError("BASELINE_HASH_MISMATCH", "Managed baseline content does not match its recorded SHA-256 hash.", { path: file.baselinePath });
   }
-  return content.toString("utf8");
+  return result.content.toString("utf8");
 }
 
 async function verifyCanonicalRoot(targetRoot: string): Promise<string> {

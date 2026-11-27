@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -8,7 +8,7 @@ import { collectProjectSnapshot } from "../../src/inspection/project-snapshot.js
 const temporaryDirectories: string[] = [];
 
 async function makeRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "pitcrew-snapshot-"));
+  const root = await realpath(await mkdtemp(join(tmpdir(), "pitcrew-snapshot-")));
   temporaryDirectories.push(root);
   return root;
 }
