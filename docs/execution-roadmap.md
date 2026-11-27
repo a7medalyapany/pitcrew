@@ -6,7 +6,7 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 
 ## Current position
 
-**Milestones M0, M1, M2.1–M2.7, and M3.1–M3.3 are complete.** M2.4 local verification was reported on 2026-11-17: typecheck passed, 18 test files/126 tests passed, and build passed. M2.5 local verification was reported on 2026-11-17: typecheck passed, 19 test files/134 tests passed, and build passed. M2.5 hosted CI run `44183011936` on commit `0a4524860450e61c1f2afbdb2dc77830f356229c` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs. M2.6 local verification passed (21 test files/155 tests); hosted CI run `44190732268` on commit `37e40e8347ad035c06136b39d40981dd001a6112` passed all 9 OS/Node matrix jobs. M2.7 local verification passed (24 test files/164 tests), typecheck and build passed; hosted CI run `44201006445` on commit `e7bb2e6d90d5a6880abb3933a4ea2cb317f6886c` passed all 9 matrix jobs. M3.1 local verification passed (26 test files/176 tests), typecheck and build passed; hosted CI run `44205268257` on commit `2c44f2455acef52a7c353b2651053eb639ae1a3b` passed all 9 matrix jobs. M3.2 local verification passed (28 test files/190 tests), typecheck, build, and `git diff --check` passed; hosted CI run `44212149205` on commit `b4a0f577e60be19b7f6ff4bef4e48d33fc2ef771` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs. A disposable real-install test also confirmed 23 expected files, valid JSON metadata, no Generic fallback file or invented skills, and safe refusal to overwrite an existing installation. M3.3 local verification passed (30 test files/208 tests), typecheck, build, and `git diff --check`; the user reported hosted CI passed for commit `37d8f66e401da33c2292f5e6a5ce0e40d0696cce`. A disposable real OpenCode install confirmed 23 files, valid JSON metadata, and preservation of existing OpenCode config/content.
+**Milestones M0, M1, M2.1–M2.7, M3.1–M3.5, and M4.0 are complete.** M2.4 local verification was reported on 2026-11-17: typecheck passed, 18 test files/126 tests passed, and build passed. M2.5 local verification was reported on 2026-11-17: typecheck passed, 19 test files/134 tests passed, and build passed. M2.5 hosted CI run `44183011936` on commit `0a4524860450e61c1f2afbdb2dc77830f356229c` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs. M2.6 local verification passed (21 test files/155 tests); hosted CI run `44190732268` on commit `37e40e8347ad035c06136b39d40981dd001a6112` passed all 9 OS/Node matrix jobs. M2.7 local verification passed (24 test files/164 tests), typecheck and build passed; hosted CI run `44201006445` on commit `e7bb2e6d90d5a6880abb3933a4ea2cb317f6886c` passed all 9 matrix jobs. M3.1 local verification passed (26 test files/176 tests), typecheck and build passed; hosted CI run `44205268257` on commit `2c44f2455acef52a7c353b2651053eb639ae1a3b` passed all 9 matrix jobs. M3.2 local verification passed (28 test files/190 tests), typecheck, build, and `git diff --check` passed; hosted CI run `44212149205` on commit `b4a0f577e60be19b7f6ff4bef4e48d33fc2ef771` passed all 9 Linux/macOS/Windows and Node.js 22/24/26 matrix jobs. A disposable real-install test also confirmed 23 expected files, valid JSON metadata, no Generic fallback file or invented skills, and safe refusal to overwrite an existing installation. M3.3 local verification passed (30 test files/208 tests), typecheck, build, and `git diff --check`; the user reported hosted CI passed for commit `37d8f66e401da33c2292f5e6a5ce0e40d0696cce`. A disposable real OpenCode install confirmed 23 files, valid JSON metadata, and preservation of existing OpenCode config/content.
 
 | Milestone | Original scope                                       | Status | Notes                                                                                                                                                                                                                                                                                                                                 |
 | --------- | ---------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -33,6 +33,11 @@ The original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0
 | M3.4.2    | Claude Code native skills                            | Done   | Maps canonical skills to `.claude/skills/`; validates bounded YAML frontmatter and preserves supporting files.                                                                                                                                                                                                                        |
 | M3.4.3    | Claude Code read-only subagents                      | Done   | Maps Claude-only agents to `.claude/agents/`; strictly allows only `Read`, `Grep`, and `Glob`.                                                                                                                                                                                                                                        |
 | M3.5      | Adapter compatibility and collision tests            | Done   | Tests all 15 non-empty adapter combinations, selection-order independence, duplicate destinations, case-insensitive collisions, and file/directory overlaps.                                                                                                                                                                          |
+| M4.0.1   | Explicit installation-state discovery              | Done   | Adds `inspectInstallationState()` with `not-installed`, `incomplete`, and `installed` states; preserves the compatibility manifest reader and makes `init` refuse incomplete metadata. Commit `0792dbd`. User-reported verification: 33 files/260 tests, typecheck, and build passed. |
+| M4.0.2.1 | Shared inspection path policy                       | Done   | Centralizes safe relative-path, excluded-directory, and sensitive-file policy and reuses it in project snapshot inspection. Commit `5cad930`. User-reported verification: 34 files/266 tests, typecheck, build, and diff check passed. |
+| M4.0.2.2 | Safe bounded file inspection                        | Done   | Adds a bounded no-follow exact-file reader and integrates it into manifest, baseline, and snapshot reads. Commit `176098273c28d025b901a005f460965bdcf2621e`. User-reported verification: 36 files/277 tests, typecheck, build, and diff check passed; hosted CI was reported passed by the user. |
+| M4.0.3   | Lifecycle foundation documentation closeout         | Done   | Records M4.0 scope, implementation, verification, and limitations. Documentation-only; no production code or fixtures changed. |
+
 
 There is no M1.6 in the original specification. The renderer is M1.4, and template validation tests are M1.5.
 
@@ -195,6 +200,31 @@ Planner collision tests verify rejection of exact duplicate destinations, case-i
 - Hosted CI: not independently verified through the available commit-status lookup.
 
 The OpenCode adapter milestone is complete. Claude Code support is complete under M3.4, and adapter compatibility testing is complete under M3.5.
+
+## M4.0 lifecycle foundation boundary
+
+M4.0 is a targeted foundation refactor, not a lifecycle-command implementation or architecture rewrite.
+
+- `inspectInstallationState()` distinguishes `not-installed`, `incomplete`, and `installed`; the legacy manifest reader remains available as a compatibility wrapper.
+- `init` refuses an existing but incomplete `.agent-workflow` metadata directory rather than treating it as a fresh installation.
+- `src/inspection/path-policy.ts` centralizes portable relative-path validation, excluded directories, and sensitive filename/extension policy for inspection.
+- `createSafeFileReader()` provides bounded exact-file reads beneath a canonical root, rejects symlink path components and non-regular files, uses `O_NOFOLLOW` where available, verifies opened-file identity, and hashes bytes while reading.
+- Manifest, baseline, and snapshot file reads use the safe reader. Snapshot directory discovery remains bounded and is not a race-free filesystem walk.
+- Node.js does not provide fully portable, race-free `openat`-style traversal of every parent component. Concurrent hostile parent-directory replacement remains a documented TOCTOU limitation.
+- No deterministic injected-I/O test currently forces a mutation during an active read to assert `FILE_CHANGED`; the earlier timing-dependent test was removed because it did not reliably mutate after open.
+- M4.0 does not implement `check`, the three-way update engine, `update`, or `uninstall`. Those remain M4.1–M4.5 in the original specification's dependency order.
+
+## Next lifecycle sequence
+
+| Milestone | Scope | Status |
+| --- | --- | --- |
+| M4.1 | Read-only `check` command | Next |
+| M4.2 | Three-way text update engine | Pending |
+| M4.3 | `update` command and conflict reporting | Pending |
+| M4.4 | Safe `uninstall` | Pending |
+| M4.5 | Lifecycle end-to-end tests | Pending |
+
+M4.1 must not modify the target project. M4.2 must preserve user edits through a three-way comparison. M4.3 and M4.4 must retain the established ownership, exact-path safety, and recovery invariants. The original build specification remains authoritative for detailed requirements.
 
 ## Non-negotiable implementation boundaries
 

@@ -600,10 +600,66 @@ After the M3.4.3 push, one Ubuntu Node.js 22 CI job reported three integration t
 
 ---
 
+## M4.0 — Lifecycle foundation refactor
+
+**Status: Done**
+
+M4.0 was a targeted foundation refactor approved before beginning the lifecycle commands. It did not redesign the manifest schema, adapter contracts, rendering, planning, transaction engine, or ownership model. Its purpose was to make installation-state discovery explicit and establish reusable, read-only, bounded filesystem inspection primitives for the later `check`, `update`, and `uninstall` work.
+
+### M4.0.1 — Explicit installation-state discovery
+
+- Added `InstallationState` with explicit `not-installed`, `incomplete`, and `installed` states.
+- Added `inspectInstallationState()` to distinguish an absent metadata directory from an existing but incomplete installation and a valid installation.
+- Preserved `readInstallationManifest()` as a compatibility wrapper.
+- Updated `init` to refuse an incomplete `.agent-workflow` installation rather than treating it as a fresh target.
+- Kept malformed or unsafe metadata fail-closed; incomplete metadata is never silently repaired or overwritten.
+- Changed files: `src/installation/manifest/storage.ts`, `src/commands/init.ts`, and installation-manifest/init tests.
+- Verification — user-reported: typecheck passed; 33 test files / 260 tests passed; build passed.
+- Commit: `0792dbd00f38cba9ba25dbdc6a9f601b0d31ff9f`.
+
+### M4.0.2.1 — Shared inspection path policy
+
+- Added `src/inspection/path-policy.ts` as the shared policy for safe portable relative paths, excluded directories, and sensitive filenames/extensions.
+- Reused the policy in project snapshot discovery so excluded and sensitive paths are treated consistently.
+- Kept this as a narrow inspection policy; it does not replace the planner's or transaction layer's own destination validation.
+- Added path-policy tests and snapshot integration coverage.
+- Changed files: `src/inspection/path-policy.ts`, `src/inspection/project-snapshot.ts`, and the corresponding inspection tests.
+- Verification — user-reported: typecheck passed; 34 test files / 266 tests passed; build and `git diff --check` passed.
+- Commit: `5cad930` (`refactor: centralize inspection path policy`).
+
+### M4.0.2.2 — Safe bounded file inspection
+
+- Added `createSafeFileReader()` in `src/inspection/read-safe-file.ts` for exact, bounded, read-only file inspection beneath a canonical root.
+- Validates portable relative paths and applies the shared sensitive/excluded-path policy before reading.
+- Rejects symlink roots, symlinked path components, non-directory parents, directories, and non-regular files. Uses `O_NOFOLLOW` where available and verifies opened-file identity using bigint device/inode metadata.
+- Reads in bounded chunks, enforces the configured byte limit, computes SHA-256 while reading, and checks file metadata for detectable changes during the read.
+- Integrated the reader into installation manifest/baseline reads and project snapshot file hashing. Preserved existing typed error contracts and mapped safe-reader failures into the relevant inspection/manifest errors.
+- Added reader tests and manifest/baseline safe-reader integration tests. The original timing-based mutation test was removed because its mutation could occur before the reader opened the file, making its expected `FILE_CHANGED` result nondeterministic. No deterministic mutation-race test is claimed.
+- Changed files: `src/inspection/read-safe-file.ts`, `src/inspection/project-snapshot.ts`, `src/installation/manifest/storage.ts`, `src/cli.ts`, `tests/inspection/read-safe-file.test.ts`, `tests/inspection/project-snapshot.test.ts`, and `tests/installation/manifest/safe-reader-integration.test.ts`.
+- Verification — user-reported after the final test adjustment: `pnpm typecheck`, `pnpm test` (36 test files / 277 tests), `pnpm build`, and `git diff --check` passed.
+- Commit: `176098273c28d025b901a005f460965bdcf2621e` (`refactor: add safe bounded file inspection`). The user reported hosted CI passed; the workflow matrix result was not independently inspected during closeout.
+
+### Foundation guarantees and limitations
+
+- Installation-state discovery distinguishes fresh, incomplete, and valid installations. Corrupt or unsafe metadata does not authorize destructive recovery.
+- Exact manifest/baseline reads and snapshot file reads use bounded safe inspection and the shared sensitive-path policy.
+- Inspection remains read-only. These primitives do not implement the `check`, `update`, or `uninstall` commands and do not mutate target projects.
+- The safe reader reduces symlink-following and unbounded-read risks, but Node.js does not provide a fully portable, race-free `openat`-style traversal of every parent component. A hostile concurrent process replacing a parent directory between checks and filesystem operations remains a platform-dependent TOCTOU limitation; do not claim that this is eliminated.
+- Project snapshot discovery remains bounded directory traversal. The exact-file reader hardens reads of discovered/manifest-listed files; it does not turn snapshot discovery into a race-free filesystem walk.
+- The test suite does not currently include a deterministic injected-I/O test that forces a file mutation during an active read and asserts `FILE_CHANGED`.
+- `fixtures/landing-main/` was not part of this work and must remain unchanged.
+
+### M4.0.3 — Foundation closeout
+
+- Recorded the completed foundation slices, changed-file scope, verification, and known limitations in the implementation log and roadmap.
+- Documentation-only; no production code, tests, adapters, or fixtures are changed by this closeout.
+
+---
+
 ## Current milestone position
 
-M3.1 through M3.5 are complete. The four runtime adapters are registered and integrated into the initial install workflow, with different capability levels and explicit limitations.
+M0, M1, M2.1–M2.7, M3.1–M3.5, and the M4.0 lifecycle-foundation refactor are complete. The four runtime adapters are registered and integrated into the initial install workflow, with different capability levels and explicit limitations.
 
-The next implementation milestone must be selected from the original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0**. Do not infer or redefine the next milestone from this log alone. Update and uninstall lifecycle work remains unimplemented and must follow the original specification's dependency order.
+The next implementation milestone is M4.1 (`check`), following the original **Agent Workflow Kit — Build-Ready Technical Specification v0.1.0** and the approved M4 lifecycle dependency order. M4.1 must remain read-only: checking an installation must never modify the target project. M4.2 (three-way text update engine), M4.3 (`update`), M4.4 safe `uninstall`, and M4.5 lifecycle end-to-end tests follow in order. Do not expand or redefine their scope from this log alone; the original specification remains authoritative.
 
 The `landing-main` fixture remains a local reference project only and must not be modified as part of implementation or documentation work.
